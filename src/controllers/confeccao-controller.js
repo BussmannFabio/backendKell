@@ -1,4 +1,4 @@
-import Confeccao from '../models/confeccao-model.js';
+import { Confeccao } from '../models/index.js';
 
 // Criar confecção
 export const criarConfeccao = async (req, res) => {

@@ -1,12 +1,11 @@
-import Financeiro from '../models/financeiro-model.js';
-import OrdemServico from '../models/ordemServico-model.js';
+import { Financeiro, OrdemServico } from '../models/index.js';
 
 // Listar todos registros financeiros
 export const listarFinanceiro = async (req, res) => {
   try {
     const registros = await Financeiro.findAll({
       include: [
-        { model: OrdemServico, as: 'ordem' }
+        { model: OrdemServico, as: 'ordemFinanceiro' } // alias deve bater com model
       ]
     });
     res.json(registros);

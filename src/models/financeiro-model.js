@@ -1,8 +1,5 @@
-// src/models/financeiro-model.js
 import { DataTypes } from 'sequelize';
 import sequelize from '../config/database.js';
-import OrdemServico from './ordemServico-model.js';
-import Confeccao from './confeccao-model.js';
 
 const Financeiro = sequelize.define('Financeiro', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
@@ -16,9 +13,5 @@ const Financeiro = sequelize.define('Financeiro', {
   tableName: 'financeiro',
   timestamps: false 
 });
-
-// Relações
-Financeiro.belongsTo(OrdemServico, { foreignKey: 'ordemId', as: 'ordem' });
-Financeiro.belongsTo(Confeccao, { foreignKey: 'confeccaoId', as: 'confeccao' });
 
 export default Financeiro;
