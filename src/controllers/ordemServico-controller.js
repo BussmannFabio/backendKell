@@ -20,9 +20,11 @@ export const criarOrdem = async (req, res) => {
         tamanho: item.tamanho,
         volumes: item.volumes,
         pecasPorVolume: item.pecasPorVolume,
-        pecasEsperadas
+        pecasEsperadas,
+        corte: item.corte   
       });
     }
+
 
     const ordemCompleta = await OrdemServico.findByPk(ordem.id, { include: 'itens' });
     res.status(201).json(ordemCompleta);
@@ -74,48 +76,48 @@ export const atualizarOrdem = async (req, res) => {
         });
       }
     }
-      const ordemAtualizada = await OrdemServico.findByPk(id, { include: ['itens'] });
-      res.json(ordemAtualizada);
+    const ordemAtualizada = await OrdemServico.findByPk(id, { include: ['itens'] });
+    res.json(ordemAtualizada);
 
-    } catch (error) {
-      console.error('Erro ao atualizar ordem:', error);
-      res.status(500).json({ error: error.message });
-    }
-  };
+  } catch (error) {
+    console.error('Erro ao atualizar ordem:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
 
-  // Listar OS
-  export const listarOrdens = async (req, res) => {
-    try {
-      const ordens = await OrdemServico.findAll({ include: 'itens' });
-      res.json(ordens);
-    } catch (error) {
-      console.error('Erro ao listar ordens:', error);
-      res.status(500).json({ error: error.message });
-    }
-  };
+// Listar OS
+export const listarOrdens = async (req, res) => {
+  try {
+    const ordens = await OrdemServico.findAll({ include: 'itens' });
+    res.json(ordens);
+  } catch (error) {
+    console.error('Erro ao listar ordens:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
 
-  // Buscar por ID
-  export const buscarOrdemPorId = async (req, res) => {
-    try {
-      const ordem = await OrdemServico.findByPk(req.params.id, { include: 'itens' });
-      if (!ordem) return res.status(404).json({ error: 'Ordem não encontrada' });
-      res.json(ordem);
-    } catch (error) {
-      console.error('Erro ao buscar ordem por ID:', error);
-      res.status(500).json({ error: error.message });
-    }
-  };
+// Buscar por ID
+export const buscarOrdemPorId = async (req, res) => {
+  try {
+    const ordem = await OrdemServico.findByPk(req.params.id, { include: 'itens' });
+    if (!ordem) return res.status(404).json({ error: 'Ordem não encontrada' });
+    res.json(ordem);
+  } catch (error) {
+    console.error('Erro ao buscar ordem por ID:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
 
-  // Deletar OS
-  export const deletarOrdem = async (req, res) => {
-    try {
-      const ordem = await OrdemServico.findByPk(req.params.id);
-      if (!ordem) return res.status(404).json({ error: 'Ordem não encontrada' });
+// Deletar OS
+export const deletarOrdem = async (req, res) => {
+  try {
+    const ordem = await OrdemServico.findByPk(req.params.id);
+    if (!ordem) return res.status(404).json({ error: 'Ordem não encontrada' });
 
-      await ordem.destroy();
-      res.json({ message: 'Ordem deletada com sucesso' });
-    } catch (error) {
-      console.error('Erro ao deletar ordem:', error);
-      res.status(500).json({ error: error.message });
-    }
-  };
+    await ordem.destroy();
+    res.json({ message: 'Ordem deletada com sucesso' });
+  } catch (error) {
+    console.error('Erro ao deletar ordem:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
