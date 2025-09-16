@@ -12,6 +12,9 @@ const router = express.Router();
 // Listar todos os Produtos
 router.get('/', listarProdutos);
 
+// Criar Produto
+router.post('/', criarProduto);
+
 // Buscar Produto por ID
 router.get('/:id', buscarProdutoPorId);
 

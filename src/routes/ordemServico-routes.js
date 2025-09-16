@@ -1,5 +1,6 @@
 import express from 'express';
-import { criarOrdem, listarOrdens, atualizarOrdem, deletarOrdem, buscarOrdemPorId } from '../controllers/ordemServico-controller.js';
+import { criarOrdem, listarOrdens, retornarOrdem, deletarOrdem, buscarOrdemPorId, reabrirOrdem} 
+from '../controllers/ordemServico-controller.js';
 
 const router = express.Router();
 
@@ -12,10 +13,13 @@ router.get('/', listarOrdens);
 // Buscar OS por ID
 router.get('/:id', buscarOrdemPorId);
 
-// Atualizar OS
-router.patch('/:id', atualizarOrdem);
+// Marcar OS como retornada
+router.patch('/:id/retornar', retornarOrdem);
 
 // Deletar OS
 router.delete('/:id', deletarOrdem);
+
+// Reabrir OS retornada
+router.patch('/:id/reabrir', reabrirOrdem);
 
 export default router;

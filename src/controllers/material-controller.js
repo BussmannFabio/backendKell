@@ -14,9 +14,9 @@ export const criarMaterial = async (req, res) => {
 export const listarMateriais = async (req, res) => {
   try {
     const materiais = await Material.findAll();
-    res.json(materiais);
+    res.json({ success: true, materiais }); // <- aqui o frontend entende
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 

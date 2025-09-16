@@ -7,6 +7,7 @@ import produtoRoutes from './routes/produto-routes.js';
 import ordemServicoRoutes from './routes/ordemServico-routes.js';
 import materialroutes from './routes/material-routes.js';
 import financeiroRoutes from './routes/financeiro-routes.js';
+import estoqueRoutes from './routes/estoque-routes.js';
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use('/produtos', produtoRoutes);
 app.use('/ordens', ordemServicoRoutes);
 app.use('/materiais', materialroutes);    
 app.use('/financeiro', financeiroRoutes);
+app.use('/estoque', estoqueRoutes);
 
 const PORT = 3000;
 
