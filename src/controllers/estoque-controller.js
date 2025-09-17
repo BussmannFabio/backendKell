@@ -1,3 +1,5 @@
+// src/controllers/estoque-controller.js
+import sequelize from '../config/database.js';
 import { EstoqueMaterial, EstoqueProduto, ProdutoTamanho, Produto, Material } from '../models/index.js';
 
 // ---------- ESTOQUE DE MATERIAIS ----------
@@ -59,15 +61,20 @@ export const updateEstoqueProduto = async (req, res) => {
     if (!id || isNaN(id)) return res.status(400).json({ error: 'ID do estoque inválido' });
 
     const { quantidadeAberta, quantidadePronta } = req.body;
-    if (quantidadeAberta < 0 || quantidadePronta < 0) {
+
+    if (
+      quantidadeAberta !== undefined && quantidadeAberta < 0 ||
+      quantidadePronta !== undefined && quantidadePronta < 0
+    ) {
       return res.status(400).json({ error: 'Quantidade não pode ser negativa' });
     }
 
     const estoque = await EstoqueProduto.findByPk(id);
     if (!estoque) return res.status(404).json({ error: 'Estoque de produto não encontrado' });
 
-    estoque.quantidadeAberta = quantidadeAberta;
-    estoque.quantidadePronta = quantidadePronta;
+    if (quantidadeAberta !== undefined) estoque.quantidadeAberta = quantidadeAberta;
+    if (quantidadePronta !== undefined) estoque.quantidadePronta = quantidadePronta;
+
     await estoque.save();
 
     res.json(estoque);
@@ -95,15 +102,15 @@ export const verificarEstoque = async (req, res) => {
         ]
       },
       order: [
-        ['produtoTamanhoPai', 'produtoPai', 'id', 'ASC'],
-        ['produtoTamanhoPai', 'tamanho', 'ASC']
+        [{ model: ProdutoTamanho, as: 'produtoTamanhoPai' }, { model: Produto, as: 'produtoPai' }, 'id', 'ASC'],
+        [{ model: ProdutoTamanho, as: 'produtoTamanhoPai' }, 'tamanho', 'ASC']
       ]
     });
 
     const resumo = {
       totalItens: estoques.length,
-      totalPecasAbertas: estoques.reduce((sum, e) => sum + Number(e.quantidadeAberta), 0),
-      totalPecasProntas: estoques.reduce((sum, e) => sum + Number(e.quantidadePronta), 0)
+      totalPecasAbertas: estoques.reduce((sum, e) => sum + Number(e.quantidadeAberta || 0), 0),
+      totalPecasProntas: estoques.reduce((sum, e) => sum + Number(e.quantidadePronta || 0), 0)
     };
 
     res.json({
@@ -114,9 +121,9 @@ export const verificarEstoque = async (req, res) => {
 
   } catch (error) {
     console.error('❌ Erro ao verificar estoque:', error);
-    res.status(500).json({ 
-      error: 'Falha ao verificar estoque', 
-      message: error.message 
+    res.status(500).json({
+      error: 'Falha ao verificar estoque',
+      message: error.message
     });
   }
 };

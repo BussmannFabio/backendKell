@@ -1,6 +1,11 @@
 // src/routes/material-routes.js
 import express from 'express';
-import { criarMaterial, listarMateriais, atualizarMaterial, deletarMaterial } from '../controllers/material-controller.js';
+import { 
+  criarMaterial, 
+  listarMateriais, 
+  atualizarMaterial, 
+  deletarMaterial 
+} from '../controllers/material-controller.js';
 
 const router = express.Router();
 

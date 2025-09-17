@@ -3,7 +3,7 @@ import {
   OrdemServico, OrdemItem, Produto, ProdutoTamanho, EstoqueProduto,
   Financeiro, EstoqueMaterial, Material, Confeccao, sequelize
 } from '../models/index.js';
-import { Op } from 'sequelize';
+import { Op, fn, col } from 'sequelize';
 
 /**
  * Helper: resolve produto aceitando tanto id (PK) quanto codigo.
@@ -16,8 +16,9 @@ async function resolveProduto(produtoIdOrCodigo, transaction = null) {
   const byPk = await Produto.findByPk(produtoIdOrCodigo, { transaction });
   if (byPk) return byPk;
 
-  // fallback: buscar por codigo (string)
-  const codigo = String(produtoIdOrCodigo);
+  // fallback: buscar por codigo (string) com trim
+  const codigo = String(produtoIdOrCodigo).trim();
+  if (!codigo) return null;
   const byCodigo = await Produto.findOne({ where: { codigo }, transaction });
   return byCodigo;
 }
@@ -51,30 +52,43 @@ export const criarOrdem = async (req, res) => {
         // Normalize numbers
         const volumes = Number(itemRaw.volumes || 0);
         const pecasPorVolume = Number(itemRaw.pecasPorVolume || 0);
-        const tamanho = itemRaw.tamanho;
+        const produtoIdOrCodigo = itemRaw.produtoId;
+        // normalize tamanho (trim + uppercase)
+        const tamanhoRaw = String(itemRaw.tamanho || '').trim().toUpperCase();
 
-        if (!itemRaw.produtoId || !tamanho || !volumes || !pecasPorVolume) {
+        if (!produtoIdOrCodigo || !tamanhoRaw || volumes <= 0 || pecasPorVolume <= 0) {
           console.warn('[CRIA-OS][ITEM][SKIP] dados incompletos', itemRawLog);
           resultados.push({ item: itemRawLog, status: 'erro', mensagem: 'Dados incompletos' });
           continue;
         }
 
         // Resolve o produto (aceita id PK ou codigo)
-        const produto = await resolveProduto(itemRaw.produtoId, t);
+        const produto = await resolveProduto(produtoIdOrCodigo, t);
         if (!produto) {
-          console.error('[CRIA-OS][ERRO] Produto não encontrado para valor:', itemRaw.produtoId);
+          console.error('[CRIA-OS][ERRO] Produto não encontrado para valor:', produtoIdOrCodigo);
           resultados.push({ item: itemRawLog, status: 'erro', mensagem: 'Produto não encontrado' });
           continue;
         }
 
-        // Verifica se existe ProdutoTamanho para este produto.id e tamanho
-        const produtoTamanho = await ProdutoTamanho.findOne({
-          where: { produtoId: produto.id, tamanho },
+        // Verifica se existe ProdutoTamanho para este produto.id e tamanho normalizado
+        let produtoTamanho = await ProdutoTamanho.findOne({
+          where: { produtoId: produto.id, tamanho: tamanhoRaw },
           transaction: t
         });
 
+        // fallback case-insensitive / DB dirty data
         if (!produtoTamanho) {
-          console.error('[CRIA-OS][ERRO] ProdutoTamanho não encontrado', { produtoId: produto.id, tamanho });
+          produtoTamanho = await ProdutoTamanho.findOne({
+            where: {
+              produtoId: produto.id,
+              [Op.and]: sequelize.where(fn('upper', col('tamanho')), tamanhoRaw)
+            },
+            transaction: t
+          });
+        }
+
+        if (!produtoTamanho) {
+          console.error('[CRIA-OS][ERRO] ProdutoTamanho não encontrado', { produtoId: produto.id, tamanho: tamanhoRaw });
           resultados.push({ item: itemRawLog, status: 'erro', mensagem: 'Tamanho do produto não encontrado' });
           continue;
         }
@@ -85,16 +99,17 @@ export const criarOrdem = async (req, res) => {
         // Criar OrdemItem usando produto.id (PK) para consistência
         const ordemItem = await OrdemItem.create({
           ordemId: ordem.id,
-          produtoId: produto.id, // <--- **use o PK do produto**
-          tamanho,
+          produtoId: produto.id,
+          produtoTamanhoId: produtoTamanho.id, // mantém ligação direta
+          tamanho: tamanhoRaw,
           volumes,
           pecasPorVolume,
           pecasEsperadas,
           corte: itemRaw.corte ? String(itemRaw.corte) : null
         }, { transaction: t });
-        console.log('[CRIA-OS] OrdemItem criada ID=', ordemItem.id);
+        console.log('[CRIA-OS] OrdemItem criada ID=', ordemItem.id, { produtoTamanhoId: produtoTamanho.id });
 
-        // Atualiza ou cria EstoqueProduto
+        // Atualiza ou cria EstoqueProduto (sempre por produtoTamanho.id)
         let estoque = await EstoqueProduto.findOne({
           where: { produtoTamanhoId: produtoTamanho.id },
           transaction: t
@@ -122,7 +137,7 @@ export const criarOrdem = async (req, res) => {
           });
         }
 
-        resultados.push({ item: itemRawLog, status: 'ok', pecasEsperadas });
+        resultados.push({ item: itemRawLog, status: 'ok', pecasEsperadas, produtoTamanhoId: produtoTamanho.id, estoqueId: estoque.id });
 
       } catch (itemError) {
         console.error('[CRIA-OS][ERRO][ITEM]', itemError);
@@ -145,8 +160,7 @@ export const criarOrdem = async (req, res) => {
 };
 
 // ---------------------- RETORNAR ORDEM ----------------------
-
-// ---------------------- RETORNAR ORDEM (VERSÃO CORRIGIDA) ----------------------
+// (mantive sua lógica, apenas normalizei tamanho e adicionei fallback)
 export const retornarOrdem = async (req, res) => {
   const t = await sequelize.transaction();
   try {
@@ -173,7 +187,7 @@ export const retornarOrdem = async (req, res) => {
         // encontra correspondência do front (por id ou por produto+tamanho)
         const frontendItem = itensRecebidos.find(i =>
           (i.id && String(i.id) === String(item.id)) ||
-          (i.produtoId && String(i.produtoId) === String(item.produtoId) && String(i.tamanho) === String(item.tamanho))
+          (i.produtoId && String(i.produtoId) === String(item.produtoId) && String(i.tamanho).trim().toUpperCase() === String(item.tamanho).trim().toUpperCase())
         );
 
         const pecasDigitadas = frontendItem ? Number(frontendItem.pecasRetornadas || 0) : 0;
@@ -183,8 +197,6 @@ export const retornarOrdem = async (req, res) => {
         const pecasParaPronta = Math.min(Math.max(pecasDigitadas, 0), pecasEsperadasAntes);
 
         // quanto vamos reduzir de "aberta" no estoque:
-        // - se retornoTotal: devemos remover toda a pendência registrada pela OS (pecasEsperadasAntes)
-        // - se parcial: removemos apenas as peças que foram efetivamente movidas para pronta (pecasParaPronta)
         const reduzirAberta = retornoTotal ? pecasEsperadasAntes : pecasParaPronta;
 
         // após operação, quantas peças ficam pendentes na OS
@@ -197,31 +209,33 @@ export const retornarOrdem = async (req, res) => {
           'restantesNaOS=', pecasRestantesNaOS
         );
 
-        // localizar ProdutoTamanho (fallback via resolveProduto)
+        // localizar ProdutoTamanho (normalize tamanho)
+        const tamanhoNorm = String(item.tamanho || '').trim().toUpperCase();
+
         let produtoTamanho = await ProdutoTamanho.findOne({
-          where: { produtoId: item.produtoId, tamanho: item.tamanho },
+          where: { produtoId: item.produtoId, tamanho: tamanhoNorm },
           transaction: t
         });
+
         if (!produtoTamanho) {
+          // fallback: busca case-insensitive / resolve produto por codigo se necessário
           const produtoResolve = await resolveProduto(item.produtoId, t);
           if (produtoResolve) {
             produtoTamanho = await ProdutoTamanho.findOne({
-              where: { produtoId: produtoResolve.id, tamanho: item.tamanho },
+              where: { produtoId: produtoResolve.id, [Op.and]: sequelize.where(fn('upper', col('tamanho')), tamanhoNorm) },
               transaction: t
             });
           }
         }
+
         if (!produtoTamanho) {
           resultados.push({ itemId: item.id, status: 'erro', mensagem: 'ProdutoTamanho não encontrado' });
           continue;
         }
 
         // atualiza ou cria estoque:
-        // - subtrai "reduzirAberta" de quantidadeAberta
-        // - soma "pecasParaPronta" em quantidadePronta
         let estoque = await EstoqueProduto.findOne({ where: { produtoTamanhoId: produtoTamanho.id }, transaction: t });
         if (!estoque) {
-          // se não existe estoque, criamos com base no que fizer sentido localmente:
           const abertaInicial = retornoTotal ? 0 : Math.max(0, pecasEsperadasAntes - pecasParaPronta);
           const prontaInicial = pecasParaPronta;
           estoque = await EstoqueProduto.create({
@@ -241,7 +255,7 @@ export const retornarOrdem = async (req, res) => {
         item.pecasEsperadas = pecasRestantesNaOS;
         await item.save({ transaction: t });
 
-        // financeiro só sobre as peças que efetivamente foram finalizadas agora
+        // financeiro sobre as peças finalizadas agora
         const produtoForCalc = await Produto.findByPk(item.produtoId, { transaction: t });
         const duzias = pecasParaPronta / 12;
         const valorMaoDeObra = produtoForCalc && produtoForCalc.valorMaoDeObraDuzia
@@ -252,7 +266,7 @@ export const retornarOrdem = async (req, res) => {
           ordemId: ordem.id,
           confeccaoId: ordem.confeccaoId,
           valorMaoDeObra,
-          diferenca: pecasParaPronta - pecasEsperadasAntes, // mantemos histórico (pode ser negativo)
+          diferenca: pecasParaPronta - pecasEsperadasAntes,
           status: 'ABERTO'
         }, { transaction: t });
 
@@ -267,10 +281,8 @@ export const retornarOrdem = async (req, res) => {
 
     // define status da OS com base no total restante
     if (totalRestanteDepois > 0) {
-      // ficou restante → coloca em produção (há peças em espera)
       await ordem.update({ status: 'EM_PRODUCAO', dataRetorno: null }, { transaction: t });
     } else {
-      // tudo retornado ou descartado → marca como retornada e grava dataRetorno
       await ordem.update({ status: 'RETORNADA', dataRetorno: new Date() }, { transaction: t });
     }
 
@@ -299,13 +311,11 @@ export const reabrirOrdem = async (req, res) => {
       return res.status(404).json({ success: false, error: 'OS não encontrada' });
     }
 
-    // permitir reabrir se estiver RETORNADA ou EM_PRODUCAO (parcialmente retornada)
     if (!['RETORNADA', 'EM_PRODUCAO'].includes(ordem.status)) {
       await t.rollback();
       return res.status(400).json({ success: false, error: 'Somente OS retornadas ou em produção podem ser reabertas' });
     }
 
-    // Atualiza status para CRIADA (reaberta) e limpa dataRetorno
     await ordem.update({ status: 'CRIADA', dataRetorno: null }, { transaction: t });
     console.log('[REABRIR-OS] status setado para CRIADA id=', id);
 
@@ -314,15 +324,16 @@ export const reabrirOrdem = async (req, res) => {
     for (const item of ordem.itens) {
       try {
         const pecasReais = Number(item.pecasReais || 0);
-        // Se não houver peças reais registradas (nada finalizado para esse item), pula
         if (pecasReais <= 0) {
           resultados.push({ itemId: item.id, status: 'ok', mensagem: 'Nenhuma peça pronta para reverter', pecasRevertidas: 0 });
           continue;
         }
 
-        // localizar ProdutoTamanho
+        // localizar ProdutoTamanho (normalize tamanho)
+        const tamanhoNorm = String(item.tamanho || '').trim().toUpperCase();
+
         const produtoTamanho = await ProdutoTamanho.findOne({
-          where: { produtoId: item.produtoId, tamanho: item.tamanho },
+          where: { produtoId: item.produtoId, [Op.and]: sequelize.where(fn('upper', col('tamanho')), tamanhoNorm) },
           transaction: t
         });
 
@@ -332,7 +343,6 @@ export const reabrirOrdem = async (req, res) => {
           continue;
         }
 
-        // localizar EstoqueProduto
         const estoque = await EstoqueProduto.findOne({
           where: { produtoTamanhoId: produtoTamanho.id },
           transaction: t
@@ -344,18 +354,18 @@ export const reabrirOrdem = async (req, res) => {
           continue;
         }
 
-        // Reverter estoque: tirar das prontas e adicionar às abertas
+        // Reverter estoque
         const prontaAntes = Number(estoque.quantidadePronta || 0);
         const abertaAntes = Number(estoque.quantidadeAberta || 0);
 
-        const retirar = Math.min(prontaAntes, pecasReais); // garante que não fique negativo
+        const retirar = Math.min(prontaAntes, pecasReais);
         estoque.quantidadePronta = Math.max(prontaAntes - retirar, 0);
         estoque.quantidadeAberta = abertaAntes + retirar;
         await estoque.save({ transaction: t });
 
-        // Atualiza o item: restaura pecasEsperadas e zera pecasReais
+        // Atualiza o item
         item.pecasEsperadas = Number(item.pecasEsperadas || 0) + retirar;
-        item.pecasReais = Math.max(pecasReais - retirar, 0); // se houve inconsistência, mantém o que sobrou (normalmente 0)
+        item.pecasReais = Math.max(pecasReais - retirar, 0);
         await item.save({ transaction: t });
 
         resultados.push({ itemId: item.id, status: 'ok', pecasRevertidas: retirar, estoqueId: estoque.id });
@@ -366,18 +376,15 @@ export const reabrirOrdem = async (req, res) => {
       }
     }
 
-    // Remove lançamentos financeiros relacionados à ordem (mesmo comportamento anterior)
     try {
       await Financeiro.destroy({ where: { ordemId: ordem.id, confeccaoId: ordem.confeccaoId }, transaction: t });
       console.log('[REABRIR-OS][FINANCEIRO] lançamentos removidos ordemId=', ordem.id);
     } catch (errFin) {
       console.error('[REABRIR-OS][ERRO][FINANCEIRO] ao remover lançamentos', errFin);
-      // não falhará todo o processo só por uma falha pontual aqui — mas logamos e seguimos
     }
 
     await t.commit();
 
-    // Recarrega ordem atualizada para resposta
     const ordemAtualizada = await OrdemServico.findByPk(id, { include: ['itens', 'confeccao'] });
     console.log('[REABRIR-OS][SUCESSO] ordem reaberta id=', id);
 
@@ -389,7 +396,6 @@ export const reabrirOrdem = async (req, res) => {
     return res.status(500).json({ success: false, error: 'Falha ao reabrir ordem', message: error.message });
   }
 };
-
 
 // ---------------------- LISTAR / BUSCAR ORDEM ----------------------
 export const listarOrdens = async (req, res) => {
@@ -406,7 +412,6 @@ export const buscarOrdemPorId = async (req, res) => {
   try {
     const ordem = await OrdemServico.findByPk(req.params.id, { include: ['itens', 'confeccao'] });
     if (!ordem) return res.status(404).json({ success: false, error: 'Ordem não encontrada' });
-    // Retornamos wrapper compatível com frontend (response.ordem)
     return res.json({ success: true, ordem });
   } catch (error) {
     console.error('[BUSCAR-OS][ERRO]', error);
@@ -423,7 +428,11 @@ export const deletarOrdem = async (req, res) => {
     if (!ordem) return res.status(404).json({ success: false, error: 'Ordem não encontrada' });
 
     for (const item of ordem.itens) {
-      const produtoTamanho = await ProdutoTamanho.findOne({ where: { produtoId: item.produtoId, tamanho: item.tamanho }, transaction: t });
+      const tamanhoNorm = String(item.tamanho || '').trim().toUpperCase();
+      const produtoTamanho = await ProdutoTamanho.findOne({
+        where: { produtoId: item.produtoId, [Op.and]: sequelize.where(fn('upper', col('tamanho')), tamanhoNorm) },
+        transaction: t
+      });
       if (!produtoTamanho) continue;
 
       const estoque = await EstoqueProduto.findOne({ where: { produtoTamanhoId: produtoTamanho.id }, transaction: t });
@@ -534,4 +543,3 @@ export const verificarEstoque = async (req, res) => {
     res.status(500).json({ success: false, error: 'Falha ao verificar estoque', message: error.message });
   }
 };
-

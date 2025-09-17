@@ -19,7 +19,7 @@ router.post('/', criarProduto);
 router.get('/:id', buscarProdutoPorId);
 
 // Atualizar Produto
-router.put('/:id', atualizarProduto);
+router.patch('/:id', atualizarProduto);
 
 // Deletar Produto
 router.delete('/:id', deletarProduto);
