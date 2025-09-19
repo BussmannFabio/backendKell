@@ -160,14 +160,21 @@ export const criarOrdem = async (req, res) => {
 };
 
 // ---------------------- RETORNAR ORDEM ----------------------
-// (mantive sua lógica, apenas normalizei tamanho e adicionei fallback)
+// Agora com tratamento de pecasComDefeito (alocação sequencial por item).
 export const retornarOrdem = async (req, res) => {
   const t = await sequelize.transaction();
   try {
     const { id } = req.params;
     const itensRecebidos = Array.isArray(req.body.itens) ? req.body.itens : [];
     const retornoTotal = req.body.retornoTotal === true;
-    console.log('[RETORNO-OS][INICIO]', { id, itensRecebidosCount: itensRecebidos.length, retornoTotal });
+    const pecasComDefeito = Number(req.body.pecasComDefeito || 0);
+
+    console.log('[RETORNO-OS][INICIO]', { id, itensRecebidosCount: itensRecebidos.length, retornoTotal, pecasComDefeito });
+
+    if (!Number.isFinite(pecasComDefeito) || pecasComDefeito < 0) {
+      await t.rollback();
+      return res.status(400).json({ success: false, error: 'pecasComDefeito inválido' });
+    }
 
     const ordem = await OrdemServico.findByPk(id, { include: ['itens', 'confeccao'], transaction: t });
     if (!ordem) {
@@ -179,8 +186,32 @@ export const retornarOrdem = async (req, res) => {
       return res.status(400).json({ success: false, error: 'OS já retornada' });
     }
 
+    // calcula total pendentes da OS e total digitado pelo front (quando aplicável)
+    const totalPendentes = ordem.itens.reduce((s, it) => s + Number(it.pecasEsperadas || 0), 0);
+    let totalDigitado = 0;
+    if (retornoTotal) {
+      totalDigitado = totalPendentes;
+    } else {
+      for (const it of ordem.itens) {
+        const f = itensRecebidos.find(i =>
+          (i.id && String(i.id) === String(it.id)) ||
+          (i.produtoId && String(i.produtoId) === String(it.produtoId) && String(i.tamanho).trim().toUpperCase() === String(it.tamanho).trim().toUpperCase())
+        );
+        totalDigitado += Number((f && f.pecasRetornadas) ? f.pecasRetornadas : 0);
+      }
+    }
+
+    const maxForDefeito = retornoTotal ? totalPendentes : totalDigitado;
+    if (pecasComDefeito > maxForDefeito) {
+      await t.rollback();
+      return res.status(400).json({ success: false, error: `pecasComDefeito (${pecasComDefeito}) excede o máximo permitido (${maxForDefeito})` });
+    }
+
     const resultados = [];
     let totalRestanteDepois = 0;
+
+    // agora distribuímos os defeitos sequencialmente entre os itens recebidos
+    let restanteDefeito = pecasComDefeito;
 
     for (const item of ordem.itens) {
       try {
@@ -190,20 +221,27 @@ export const retornarOrdem = async (req, res) => {
           (i.produtoId && String(i.produtoId) === String(item.produtoId) && String(i.tamanho).trim().toUpperCase() === String(item.tamanho).trim().toUpperCase())
         );
 
-        const pecasDigitadas = frontendItem ? Number(frontendItem.pecasRetornadas || 0) : 0;
         const pecasEsperadasAntes = Number(item.pecasEsperadas || 0);
 
-        // pecas que efetivamente irão para "pronta" nesta chamada: sempre baseado no input (limite: esperado)
-        const pecasParaPronta = Math.min(Math.max(pecasDigitadas, 0), pecasEsperadasAntes);
+        // se retornoTotal, consideramos todas as peças como "digitadas" para este retorno
+        const pecasDigitadas = retornoTotal ? pecasEsperadasAntes : Number(frontendItem ? (frontendItem.pecasRetornadas || 0) : 0);
 
-        // quanto vamos reduzir de "aberta" no estoque:
-        const reduzirAberta = retornoTotal ? pecasEsperadasAntes : pecasParaPronta;
+        // aloca defeitos para este item (consome restanteDefeito sequencialmente)
+        const defeitoAlocado = Math.min(pecasDigitadas, restanteDefeito);
+        restanteDefeito = Math.max(0, restanteDefeito - defeitoAlocado);
+
+        // peças que realmente irão para 'pronta' (não-defeituosas) - limitadas ao esperado
+        const pecasParaPronta = Math.min(Math.max(pecasDigitadas - defeitoAlocado, 0), pecasEsperadasAntes);
+
+        // quanto iremos reduzir de 'aberta' no estoque: sempre pelo total devolvido (inclui defeitos)
+        const reduzirAberta = retornoTotal ? pecasEsperadasAntes : Math.min(pecasDigitadas, pecasEsperadasAntes);
 
         // após operação, quantas peças ficam pendentes na OS
-        const pecasRestantesNaOS = retornoTotal ? 0 : Math.max(pecasEsperadasAntes - pecasParaPronta, 0);
+        const pecasRestantesNaOS = retornoTotal ? 0 : Math.max(pecasEsperadasAntes - pecasDigitadas, 0);
 
         console.log('[RETORNO-OS] itemId=', item.id,
           'digitadas=', pecasDigitadas,
+          'defeitoAlocado=', defeitoAlocado,
           'paraPronta=', pecasParaPronta,
           'reduzirAberta=', reduzirAberta,
           'restantesNaOS=', pecasRestantesNaOS
@@ -236,7 +274,8 @@ export const retornarOrdem = async (req, res) => {
         // atualiza ou cria estoque:
         let estoque = await EstoqueProduto.findOne({ where: { produtoTamanhoId: produtoTamanho.id }, transaction: t });
         if (!estoque) {
-          const abertaInicial = retornoTotal ? 0 : Math.max(0, pecasEsperadasAntes - pecasParaPronta);
+          // estado inicial pós-retorno: aberta reduzida pelo que foi devolvido, pronta recebe apenas as não-defeituosas
+          const abertaInicial = Math.max(0, pecasEsperadasAntes - reduzirAberta);
           const prontaInicial = pecasParaPronta;
           estoque = await EstoqueProduto.create({
             produtoTamanhoId: produtoTamanho.id,
@@ -255,9 +294,9 @@ export const retornarOrdem = async (req, res) => {
         item.pecasEsperadas = pecasRestantesNaOS;
         await item.save({ transaction: t });
 
-        // financeiro sobre as peças finalizadas agora
+        // financeiro: **usar o total retornado (pecasDigitadas)** — inclui peças com defeito
         const produtoForCalc = await Produto.findByPk(item.produtoId, { transaction: t });
-        const duzias = pecasParaPronta / 12;
+        const duzias = pecasDigitadas / 12;
         const valorMaoDeObra = produtoForCalc && produtoForCalc.valorMaoDeObraDuzia
           ? Number(produtoForCalc.valorMaoDeObraDuzia) * duzias
           : 0;
@@ -266,12 +305,22 @@ export const retornarOrdem = async (req, res) => {
           ordemId: ordem.id,
           confeccaoId: ordem.confeccaoId,
           valorMaoDeObra,
-          diferenca: pecasParaPronta - pecasEsperadasAntes,
+          // diferenca guarda variação entre retornado e esperado (pode ser negativo/positivo)
+          diferenca: pecasDigitadas - pecasEsperadasAntes,
           status: 'ABERTO'
         }, { transaction: t });
 
         totalRestanteDepois += pecasRestantesNaOS;
-        resultados.push({ itemId: item.id, status: 'ok', pecasParaPronta, reduzirAberta, estoqueId: estoque.id, financeiroId: financeiro.id });
+        resultados.push({
+          itemId: item.id,
+          status: 'ok',
+          pecasDigitadas,
+          defeitoAlocado,
+          pecasParaPronta,
+          reduzirAberta,
+          estoqueId: estoque.id,
+          financeiroId: financeiro.id
+        });
 
       } catch (itemError) {
         console.error('[RETORNO-OS][ERRO][ITEM]', item.id, itemError);
