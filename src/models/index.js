@@ -1,4 +1,5 @@
 // src/models/index.js
+
 import OrdemServico from './ordemServico-model.js';
 import OrdemItem from './ordemItem-model.js';
 import Produto from './produto-model.js';
@@ -8,6 +9,13 @@ import Material from './material-model.js';
 import EstoqueMaterial from './EstoqueMaterial-model.js';
 import Financeiro from './financeiro-model.js';
 import Confeccao from './confeccao-model.js';
+
+// Novos models
+import {User} from './user-model.js';
+import Role from './role-model.js';
+import { Audit } from './audit-model.js';
+
+
 import sequelize from '../config/database.js';
 
 // ----------------------
@@ -47,6 +55,18 @@ Financeiro.belongsTo(OrdemServico, { foreignKey: 'ordemId', as: 'ordemFinanceiro
 Financeiro.belongsTo(Confeccao, { foreignKey: 'confeccaoId', as: 'confeccaoFinanceiro' });
 
 // ----------------------
+// User x Role
+// ----------------------
+User.belongsTo(Role, { foreignKey: 'roleId', as: 'role' });
+Role.hasMany(User, { foreignKey: 'roleId', as: 'usuarios' });
+
+// ----------------------
+// Audit x User
+// ----------------------
+Audit.belongsTo(User, { foreignKey: 'usuarioId', as: 'usuario' });
+User.hasMany(Audit, { foreignKey: 'usuarioId', as: 'auditorias' });
+
+// ----------------------
 // Exportações
 // ----------------------
 export {
@@ -58,6 +78,9 @@ export {
   Material,
   EstoqueMaterial,
   Financeiro,
-  sequelize,
-  Confeccao
+  Confeccao,
+  User,
+  Role,
+  Audit,
+  sequelize
 };

@@ -1,31 +1,66 @@
-import sequelize from './config/database.js';
-import Confeccao from './models/confeccao-model.js';
-import Produto from './models/produto-model.js';
-import ProdutoTamanho from './models/produtoTamanho-model.js';
-import OrdemServico from './models/ordemServico-model.js';
-import OrdemItem from './models/ordemItem-model.js';
-import Financeiro from './models/financeiro-model.js';
-import EstoqueMaterial from './models/EstoqueMaterial-model.js';
-import EstoqueProduto from './models/EstoqueProduto-model.js';
+// scripts/zerarBanco.js
+/**
+ * Zera o banco: recria todas as tabelas (force: true) e cria roles + admin.
+ *
+ * Uso: node scripts/zerarBanco.js
+ *
+ * ATENÇÃO: apaga todos os dados!
+ */
+
+import bcrypt from 'bcrypt';
+import { sequelize, User, Role } from '../src/models/index.js';
+
+const ADMIN_NAME = 'admin';
+const ADMIN_PASS = '123456'; // troque aqui se quiser outra senha
 
 (async () => {
   try {
+    console.log('>>> Conectando ao banco...');
     await sequelize.authenticate();
-    console.log('Conexão OK');
+    console.log('Conexão com DB OK');
 
-    await Confeccao.sync({ force: true });
-    await Produto.sync({ force: true });
-    await ProdutoTamanho.sync({ force: true });
-    await OrdemServico.sync({ force: true });
-    await OrdemItem.sync({ force: true });
-    await Financeiro.sync({ force: true });
-    await EstoqueMaterial.sync({ force: true });
-    await EstoqueProduto.sync({ force: true });
-    
-    console.log('Banco zerado e tabelas recriadas');
+    console.log('>>> Drop & recreate: sincronizando modelos (force: true) — todas tabelas serão recriadas');
+    await sequelize.sync({ force: true });
+    console.log('Tabelas recriadas com sucesso.');
+
+    // Criar roles padrão
+    console.log('>>> Criando roles padrão (admin, user)');
+    const [adminRole] = await Role.findOrCreate({
+      where: { nome: 'admin' },
+      defaults: { nome: 'admin' }
+    });
+    const [userRole] = await Role.findOrCreate({
+      where: { nome: 'user' },
+      defaults: { nome: 'user' }
+    });
+    console.log('Roles confirmadas:', { adminRoleId: adminRole.id, userRoleId: userRole.id });
+
+    // Criar/atualizar usuário admin
+    console.log(`>>> Criando/atualizando usuário "${ADMIN_NAME}" com senha "${ADMIN_PASS}"`);
+    const senhaHash = await bcrypt.hash(ADMIN_PASS, 10);
+
+    const [adminUser, created] = await User.findOrCreate({
+      where: { nome: ADMIN_NAME },
+      defaults: { nome: ADMIN_NAME, senhaHash, roleId: adminRole.id }
+    });
+
+    if (!created) {
+      // já existia — atualiza senha e role
+      adminUser.senhaHash = senhaHash;
+      adminUser.roleId = adminRole.id;
+      await adminUser.save();
+      console.log('Usuário admin atualizado (senha sobrescrita).');
+    } else {
+      console.log('Usuário admin criado.');
+    }
+
+    console.log('>>> RESET COMPLETO. Acesse com:', { nome: ADMIN_NAME, senha: ADMIN_PASS });
   } catch (err) {
-    console.error('Erro ao resetar banco:', err);
+    console.error('Erro no reset do banco:', err);
+    process.exitCode = 1;
   } finally {
-    await sequelize.close();
+    try { await sequelize.close(); } catch (e) {}
+    // encerra o processo explicitamente
+    process.exit();
   }
 })();

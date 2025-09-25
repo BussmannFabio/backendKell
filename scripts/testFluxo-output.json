@@ -1,0 +1,3333 @@
+{
+  "api": "http://localhost:3000",
+  "timestamp": "2025-09-24T18:37:07.842Z",
+  "confeccoes": [
+    {
+      "id": 1,
+      "nome": "Oficina 1"
+    },
+    {
+      "id": 2,
+      "nome": "Oficina 2"
+    },
+    {
+      "id": 3,
+      "nome": "Oficina 3"
+    },
+    {
+      "id": 4,
+      "nome": "Oficina 4"
+    },
+    {
+      "id": 5,
+      "nome": "Oficina 5"
+    }
+  ],
+  "produtosInfo": [
+    {
+      "codigo": "201",
+      "produtoId": 1,
+      "tamanho": "GG",
+      "produtoTamanhoId": 1,
+      "estoqueId": 1,
+      "valorMaoDeObraDuzia": 120,
+      "valorMaoDeObraPeca": 10
+    },
+    {
+      "codigo": "202",
+      "produtoId": 2,
+      "tamanho": "MM",
+      "produtoTamanhoId": 2,
+      "estoqueId": 2,
+      "valorMaoDeObraDuzia": 125,
+      "valorMaoDeObraPeca": 10
+    },
+    {
+      "codigo": "203",
+      "produtoId": 3,
+      "tamanho": "GG",
+      "produtoTamanhoId": 3,
+      "estoqueId": 3,
+      "valorMaoDeObraDuzia": 130,
+      "valorMaoDeObraPeca": 11
+    },
+    {
+      "codigo": "204",
+      "produtoId": 4,
+      "tamanho": "MM",
+      "produtoTamanhoId": 4,
+      "estoqueId": 4,
+      "valorMaoDeObraDuzia": 110,
+      "valorMaoDeObraPeca": 9
+    },
+    {
+      "codigo": "205",
+      "produtoId": 5,
+      "tamanho": "GG",
+      "produtoTamanhoId": 5,
+      "estoqueId": 5,
+      "valorMaoDeObraDuzia": 140,
+      "valorMaoDeObraPeca": 12
+    },
+    {
+      "codigo": "206",
+      "produtoId": 6,
+      "tamanho": "MM",
+      "produtoTamanhoId": 6,
+      "estoqueId": 6,
+      "valorMaoDeObraDuzia": 120,
+      "valorMaoDeObraPeca": 10
+    },
+    {
+      "codigo": "207",
+      "produtoId": 7,
+      "tamanho": "GG",
+      "produtoTamanhoId": 7,
+      "estoqueId": 7,
+      "valorMaoDeObraDuzia": 125,
+      "valorMaoDeObraPeca": 10
+    },
+    {
+      "codigo": "208",
+      "produtoId": 8,
+      "tamanho": "MM",
+      "produtoTamanhoId": 8,
+      "estoqueId": 8,
+      "valorMaoDeObraDuzia": 130,
+      "valorMaoDeObraPeca": 11
+    },
+    {
+      "codigo": "209",
+      "produtoId": 9,
+      "tamanho": "GG",
+      "produtoTamanhoId": 9,
+      "estoqueId": 9,
+      "valorMaoDeObraDuzia": 110,
+      "valorMaoDeObraPeca": 9
+    },
+    {
+      "codigo": "210",
+      "produtoId": 10,
+      "tamanho": "MM",
+      "produtoTamanhoId": 10,
+      "estoqueId": 10,
+      "valorMaoDeObraDuzia": 140,
+      "valorMaoDeObraPeca": 12
+    },
+    {
+      "codigo": "211",
+      "produtoId": 11,
+      "tamanho": "GG",
+      "produtoTamanhoId": 11,
+      "estoqueId": 11,
+      "valorMaoDeObraDuzia": 120,
+      "valorMaoDeObraPeca": 10
+    },
+    {
+      "codigo": "212",
+      "produtoId": 12,
+      "tamanho": "MM",
+      "produtoTamanhoId": 12,
+      "estoqueId": 12,
+      "valorMaoDeObraDuzia": 125,
+      "valorMaoDeObraPeca": 10
+    },
+    {
+      "codigo": "213",
+      "produtoId": 13,
+      "tamanho": "GG",
+      "produtoTamanhoId": 13,
+      "estoqueId": 13,
+      "valorMaoDeObraDuzia": 130,
+      "valorMaoDeObraPeca": 11
+    },
+    {
+      "codigo": "214",
+      "produtoId": 14,
+      "tamanho": "MM",
+      "produtoTamanhoId": 14,
+      "estoqueId": 14,
+      "valorMaoDeObraDuzia": 110,
+      "valorMaoDeObraPeca": 9
+    },
+    {
+      "codigo": "215",
+      "produtoId": 15,
+      "tamanho": "GG",
+      "produtoTamanhoId": 15,
+      "estoqueId": 15,
+      "valorMaoDeObraDuzia": 140,
+      "valorMaoDeObraPeca": 12
+    },
+    {
+      "codigo": "216",
+      "produtoId": 16,
+      "tamanho": "MM",
+      "produtoTamanhoId": 16,
+      "estoqueId": 16,
+      "valorMaoDeObraDuzia": 120,
+      "valorMaoDeObraPeca": 10
+    },
+    {
+      "codigo": "217",
+      "produtoId": 17,
+      "tamanho": "GG",
+      "produtoTamanhoId": 17,
+      "estoqueId": 17,
+      "valorMaoDeObraDuzia": 125,
+      "valorMaoDeObraPeca": 10
+    },
+    {
+      "codigo": "218",
+      "produtoId": 18,
+      "tamanho": "MM",
+      "produtoTamanhoId": 18,
+      "estoqueId": 18,
+      "valorMaoDeObraDuzia": 130,
+      "valorMaoDeObraPeca": 11
+    },
+    {
+      "codigo": "219",
+      "produtoId": 19,
+      "tamanho": "GG",
+      "produtoTamanhoId": 19,
+      "estoqueId": 19,
+      "valorMaoDeObraDuzia": 110,
+      "valorMaoDeObraPeca": 9
+    },
+    {
+      "codigo": "220",
+      "produtoId": 20,
+      "tamanho": "MM",
+      "produtoTamanhoId": 20,
+      "estoqueId": 20,
+      "valorMaoDeObraDuzia": 140,
+      "valorMaoDeObraPeca": 12
+    },
+    {
+      "codigo": "221",
+      "produtoId": 21,
+      "tamanho": "GG",
+      "produtoTamanhoId": 21,
+      "estoqueId": 21,
+      "valorMaoDeObraDuzia": 120,
+      "valorMaoDeObraPeca": 10
+    },
+    {
+      "codigo": "222",
+      "produtoId": 22,
+      "tamanho": "MM",
+      "produtoTamanhoId": 22,
+      "estoqueId": 22,
+      "valorMaoDeObraDuzia": 125,
+      "valorMaoDeObraPeca": 10
+    },
+    {
+      "codigo": "223",
+      "produtoId": 23,
+      "tamanho": "GG",
+      "produtoTamanhoId": 23,
+      "estoqueId": 23,
+      "valorMaoDeObraDuzia": 130,
+      "valorMaoDeObraPeca": 11
+    },
+    {
+      "codigo": "224",
+      "produtoId": 24,
+      "tamanho": "MM",
+      "produtoTamanhoId": 24,
+      "estoqueId": 24,
+      "valorMaoDeObraDuzia": 110,
+      "valorMaoDeObraPeca": 9
+    },
+    {
+      "codigo": "225",
+      "produtoId": 25,
+      "tamanho": "GG",
+      "produtoTamanhoId": 25,
+      "estoqueId": 25,
+      "valorMaoDeObraDuzia": 140,
+      "valorMaoDeObraPeca": 12
+    }
+  ],
+  "ordensCriadasCount": 500,
+  "ordensCriadasSample": [
+    {
+      "id": 1,
+      "produto": "201",
+      "confeccao": "Oficina 1"
+    },
+    {
+      "id": 2,
+      "produto": "202",
+      "confeccao": "Oficina 2"
+    },
+    {
+      "id": 3,
+      "produto": "203",
+      "confeccao": "Oficina 3"
+    },
+    {
+      "id": 4,
+      "produto": "204",
+      "confeccao": "Oficina 4"
+    },
+    {
+      "id": 5,
+      "produto": "205",
+      "confeccao": "Oficina 5"
+    },
+    {
+      "id": 6,
+      "produto": "206",
+      "confeccao": "Oficina 1"
+    },
+    {
+      "id": 7,
+      "produto": "207",
+      "confeccao": "Oficina 2"
+    },
+    {
+      "id": 8,
+      "produto": "208",
+      "confeccao": "Oficina 3"
+    },
+    {
+      "id": 9,
+      "produto": "209",
+      "confeccao": "Oficina 4"
+    },
+    {
+      "id": 10,
+      "produto": "210",
+      "confeccao": "Oficina 5"
+    }
+  ],
+  "retornosCount": 470,
+  "retornosSample": [
+    {
+      "ordemId": 1,
+      "produto": "201",
+      "defeitos": 2
+    },
+    {
+      "ordemId": 2,
+      "produto": "202",
+      "defeitos": 0
+    },
+    {
+      "ordemId": 3,
+      "produto": "203",
+      "defeitos": 0
+    },
+    {
+      "ordemId": 4,
+      "produto": "204",
+      "defeitos": 0
+    },
+    {
+      "ordemId": 5,
+      "produto": "205",
+      "defeitos": 0
+    },
+    {
+      "ordemId": 6,
+      "produto": "206",
+      "defeitos": 0
+    },
+    {
+      "ordemId": 7,
+      "produto": "207",
+      "defeitos": 0
+    },
+    {
+      "ordemId": 8,
+      "produto": "208",
+      "defeitos": 0
+    },
+    {
+      "ordemId": 9,
+      "produto": "209",
+      "defeitos": 0
+    },
+    {
+      "ordemId": 10,
+      "produto": "210",
+      "defeitos": 0
+    }
+  ],
+  "estoques": [
+    {
+      "produtoCodigo": "221",
+      "tamanho": "GG",
+      "aberta": 80,
+      "pronta": 702
+    },
+    {
+      "produtoCodigo": "222",
+      "tamanho": "MM",
+      "aberta": 75,
+      "pronta": 900
+    },
+    {
+      "produtoCodigo": "223",
+      "tamanho": "GG",
+      "aberta": 150,
+      "pronta": 1080
+    },
+    {
+      "produtoCodigo": "224",
+      "tamanho": "MM",
+      "aberta": 140,
+      "pronta": 1260
+    },
+    {
+      "produtoCodigo": "225",
+      "tamanho": "GG",
+      "aberta": 120,
+      "pronta": 1440
+    },
+    {
+      "produtoCodigo": "201",
+      "tamanho": "GG",
+      "aberta": 40,
+      "pronta": 720
+    },
+    {
+      "produtoCodigo": "202",
+      "tamanho": "MM",
+      "aberta": 75,
+      "pronta": 950
+    },
+    {
+      "produtoCodigo": "203",
+      "tamanho": "GG",
+      "aberta": 30,
+      "pronta": 1170
+    },
+    {
+      "produtoCodigo": "204",
+      "tamanho": "MM",
+      "aberta": 70,
+      "pronta": 1295
+    },
+    {
+      "produtoCodigo": "205",
+      "tamanho": "GG",
+      "aberta": 120,
+      "pronta": 1520
+    },
+    {
+      "produtoCodigo": "206",
+      "tamanho": "MM",
+      "aberta": 20,
+      "pronta": 762
+    },
+    {
+      "produtoCodigo": "207",
+      "tamanho": "GG",
+      "aberta": 50,
+      "pronta": 925
+    },
+    {
+      "produtoCodigo": "208",
+      "tamanho": "MM",
+      "aberta": 90,
+      "pronta": 1140
+    },
+    {
+      "produtoCodigo": "209",
+      "tamanho": "GG",
+      "aberta": 35,
+      "pronta": 1365
+    },
+    {
+      "produtoCodigo": "210",
+      "tamanho": "MM",
+      "aberta": 80,
+      "pronta": 1480
+    },
+    {
+      "produtoCodigo": "211",
+      "tamanho": "GG",
+      "aberta": 60,
+      "pronta": 740
+    },
+    {
+      "produtoCodigo": "212",
+      "tamanho": "MM",
+      "aberta": 25,
+      "pronta": 975
+    },
+    {
+      "produtoCodigo": "213",
+      "tamanho": "GG",
+      "aberta": 60,
+      "pronta": 1110
+    },
+    {
+      "produtoCodigo": "214",
+      "tamanho": "MM",
+      "aberta": 105,
+      "pronta": 1330
+    },
+    {
+      "produtoCodigo": "215",
+      "tamanho": "GG",
+      "aberta": 40,
+      "pronta": 1560
+    },
+    {
+      "produtoCodigo": "216",
+      "tamanho": "MM",
+      "aberta": 40,
+      "pronta": 722
+    },
+    {
+      "produtoCodigo": "217",
+      "tamanho": "GG",
+      "aberta": 75,
+      "pronta": 950
+    },
+    {
+      "produtoCodigo": "218",
+      "tamanho": "MM",
+      "aberta": 30,
+      "pronta": 1170
+    },
+    {
+      "produtoCodigo": "219",
+      "tamanho": "GG",
+      "aberta": 70,
+      "pronta": 1295
+    },
+    {
+      "produtoCodigo": "220",
+      "tamanho": "MM",
+      "aberta": 120,
+      "pronta": 1520
+    }
+  ],
+  "financeiro": [
+    {
+      "id": 1,
+      "ordemId": 1,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 2,
+      "ordemId": 2,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 3,
+      "ordemId": 3,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 4,
+      "ordemId": 4,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 5,
+      "ordemId": 5,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 6,
+      "ordemId": 6,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 7,
+      "ordemId": 7,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 8,
+      "ordemId": 8,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 9,
+      "ordemId": 9,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 10,
+      "ordemId": 10,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 11,
+      "ordemId": 11,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 12,
+      "ordemId": 12,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 13,
+      "ordemId": 13,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 14,
+      "ordemId": 14,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 15,
+      "ordemId": 15,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 16,
+      "ordemId": 16,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 17,
+      "ordemId": 17,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 18,
+      "ordemId": 18,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 19,
+      "ordemId": 19,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 20,
+      "ordemId": 20,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 21,
+      "ordemId": 21,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 22,
+      "ordemId": 22,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 23,
+      "ordemId": 23,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 24,
+      "ordemId": 24,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 25,
+      "ordemId": 25,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 26,
+      "ordemId": 26,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 27,
+      "ordemId": 27,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 28,
+      "ordemId": 28,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 29,
+      "ordemId": 29,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 30,
+      "ordemId": 30,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 31,
+      "ordemId": 31,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 32,
+      "ordemId": 32,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 33,
+      "ordemId": 33,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 34,
+      "ordemId": 34,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 35,
+      "ordemId": 35,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 36,
+      "ordemId": 36,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 37,
+      "ordemId": 37,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 38,
+      "ordemId": 38,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 39,
+      "ordemId": 39,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 40,
+      "ordemId": 40,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 41,
+      "ordemId": 41,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 42,
+      "ordemId": 42,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 43,
+      "ordemId": 43,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 44,
+      "ordemId": 44,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 45,
+      "ordemId": 45,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 46,
+      "ordemId": 46,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 47,
+      "ordemId": 47,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 48,
+      "ordemId": 48,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 49,
+      "ordemId": 49,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 50,
+      "ordemId": 50,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 51,
+      "ordemId": 51,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 52,
+      "ordemId": 52,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 53,
+      "ordemId": 53,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 54,
+      "ordemId": 54,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 55,
+      "ordemId": 55,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 56,
+      "ordemId": 56,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 57,
+      "ordemId": 57,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 58,
+      "ordemId": 58,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 59,
+      "ordemId": 59,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 60,
+      "ordemId": 60,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 61,
+      "ordemId": 61,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 62,
+      "ordemId": 62,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 63,
+      "ordemId": 63,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 64,
+      "ordemId": 64,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 65,
+      "ordemId": 65,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 66,
+      "ordemId": 66,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 67,
+      "ordemId": 67,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 68,
+      "ordemId": 68,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 69,
+      "ordemId": 69,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 70,
+      "ordemId": 70,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 71,
+      "ordemId": 71,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 72,
+      "ordemId": 72,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 73,
+      "ordemId": 73,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 74,
+      "ordemId": 74,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 75,
+      "ordemId": 75,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 76,
+      "ordemId": 76,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 77,
+      "ordemId": 77,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 78,
+      "ordemId": 78,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 79,
+      "ordemId": 79,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 80,
+      "ordemId": 80,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 81,
+      "ordemId": 81,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 82,
+      "ordemId": 82,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 83,
+      "ordemId": 83,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 84,
+      "ordemId": 84,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 85,
+      "ordemId": 85,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 86,
+      "ordemId": 86,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 87,
+      "ordemId": 87,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 88,
+      "ordemId": 88,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 89,
+      "ordemId": 89,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 90,
+      "ordemId": 90,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 91,
+      "ordemId": 91,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 92,
+      "ordemId": 92,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 93,
+      "ordemId": 93,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 94,
+      "ordemId": 94,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 95,
+      "ordemId": 95,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 96,
+      "ordemId": 96,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 97,
+      "ordemId": 97,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 98,
+      "ordemId": 98,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 99,
+      "ordemId": 99,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 100,
+      "ordemId": 100,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 101,
+      "ordemId": 101,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 102,
+      "ordemId": 102,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 103,
+      "ordemId": 103,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 104,
+      "ordemId": 104,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 105,
+      "ordemId": 105,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 106,
+      "ordemId": 106,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 107,
+      "ordemId": 107,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 108,
+      "ordemId": 108,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 109,
+      "ordemId": 109,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 110,
+      "ordemId": 110,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 111,
+      "ordemId": 111,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 112,
+      "ordemId": 112,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 113,
+      "ordemId": 113,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 114,
+      "ordemId": 114,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 115,
+      "ordemId": 115,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 116,
+      "ordemId": 116,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 117,
+      "ordemId": 117,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 118,
+      "ordemId": 118,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 119,
+      "ordemId": 119,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 120,
+      "ordemId": 120,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 121,
+      "ordemId": 121,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 122,
+      "ordemId": 122,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 123,
+      "ordemId": 123,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 124,
+      "ordemId": 124,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 125,
+      "ordemId": 125,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 126,
+      "ordemId": 126,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 127,
+      "ordemId": 127,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 128,
+      "ordemId": 128,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 129,
+      "ordemId": 129,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 130,
+      "ordemId": 130,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 131,
+      "ordemId": 131,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 132,
+      "ordemId": 132,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 133,
+      "ordemId": 133,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 134,
+      "ordemId": 134,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 135,
+      "ordemId": 135,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 136,
+      "ordemId": 136,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 137,
+      "ordemId": 137,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 138,
+      "ordemId": 138,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 139,
+      "ordemId": 139,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 140,
+      "ordemId": 140,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 141,
+      "ordemId": 141,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 142,
+      "ordemId": 142,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 143,
+      "ordemId": 143,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 144,
+      "ordemId": 144,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 145,
+      "ordemId": 145,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 146,
+      "ordemId": 146,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 147,
+      "ordemId": 147,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 148,
+      "ordemId": 148,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 149,
+      "ordemId": 149,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 150,
+      "ordemId": 150,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 151,
+      "ordemId": 151,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 152,
+      "ordemId": 152,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 153,
+      "ordemId": 153,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 154,
+      "ordemId": 154,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 155,
+      "ordemId": 155,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 156,
+      "ordemId": 156,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 157,
+      "ordemId": 157,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 158,
+      "ordemId": 158,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 159,
+      "ordemId": 159,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 160,
+      "ordemId": 160,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 161,
+      "ordemId": 161,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 162,
+      "ordemId": 162,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 163,
+      "ordemId": 163,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 164,
+      "ordemId": 164,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 165,
+      "ordemId": 165,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 166,
+      "ordemId": 166,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 167,
+      "ordemId": 167,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 168,
+      "ordemId": 168,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 169,
+      "ordemId": 169,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 170,
+      "ordemId": 170,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 171,
+      "ordemId": 171,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 172,
+      "ordemId": 172,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 173,
+      "ordemId": 173,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 174,
+      "ordemId": 174,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 175,
+      "ordemId": 175,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 176,
+      "ordemId": 176,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 177,
+      "ordemId": 177,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 178,
+      "ordemId": 178,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 179,
+      "ordemId": 179,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 180,
+      "ordemId": 180,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 181,
+      "ordemId": 181,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 182,
+      "ordemId": 182,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 183,
+      "ordemId": 183,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 184,
+      "ordemId": 184,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 185,
+      "ordemId": 185,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 186,
+      "ordemId": 186,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 187,
+      "ordemId": 187,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 188,
+      "ordemId": 188,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 189,
+      "ordemId": 189,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 190,
+      "ordemId": 190,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 191,
+      "ordemId": 191,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 192,
+      "ordemId": 192,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 193,
+      "ordemId": 193,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 194,
+      "ordemId": 194,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 195,
+      "ordemId": 195,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 196,
+      "ordemId": 196,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 197,
+      "ordemId": 197,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 198,
+      "ordemId": 198,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 199,
+      "ordemId": 199,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 200,
+      "ordemId": 200,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 201,
+      "ordemId": 201,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 202,
+      "ordemId": 202,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 203,
+      "ordemId": 203,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 204,
+      "ordemId": 204,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 205,
+      "ordemId": 205,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 206,
+      "ordemId": 206,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 207,
+      "ordemId": 207,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 208,
+      "ordemId": 208,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 209,
+      "ordemId": 209,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 210,
+      "ordemId": 210,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 211,
+      "ordemId": 211,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 212,
+      "ordemId": 212,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 213,
+      "ordemId": 213,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 214,
+      "ordemId": 214,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 215,
+      "ordemId": 215,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 216,
+      "ordemId": 216,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 217,
+      "ordemId": 217,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 218,
+      "ordemId": 218,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 219,
+      "ordemId": 219,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 220,
+      "ordemId": 220,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 221,
+      "ordemId": 221,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 222,
+      "ordemId": 222,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 223,
+      "ordemId": 223,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 224,
+      "ordemId": 224,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 225,
+      "ordemId": 225,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 226,
+      "ordemId": 226,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 227,
+      "ordemId": 227,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 228,
+      "ordemId": 228,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 229,
+      "ordemId": 229,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 230,
+      "ordemId": 230,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 231,
+      "ordemId": 231,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 232,
+      "ordemId": 232,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 233,
+      "ordemId": 233,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 234,
+      "ordemId": 234,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 235,
+      "ordemId": 235,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 236,
+      "ordemId": 236,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 237,
+      "ordemId": 237,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 238,
+      "ordemId": 238,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 239,
+      "ordemId": 239,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 240,
+      "ordemId": 240,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 241,
+      "ordemId": 241,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 242,
+      "ordemId": 242,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 243,
+      "ordemId": 243,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 244,
+      "ordemId": 244,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 245,
+      "ordemId": 245,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 246,
+      "ordemId": 246,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 247,
+      "ordemId": 247,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 248,
+      "ordemId": 248,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 249,
+      "ordemId": 249,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 250,
+      "ordemId": 250,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 251,
+      "ordemId": 251,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 252,
+      "ordemId": 252,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 253,
+      "ordemId": 253,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 254,
+      "ordemId": 254,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 255,
+      "ordemId": 255,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 256,
+      "ordemId": 256,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 257,
+      "ordemId": 257,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 258,
+      "ordemId": 258,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 259,
+      "ordemId": 259,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 260,
+      "ordemId": 260,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 261,
+      "ordemId": 261,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 262,
+      "ordemId": 262,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 263,
+      "ordemId": 263,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 264,
+      "ordemId": 264,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 265,
+      "ordemId": 265,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 266,
+      "ordemId": 266,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 267,
+      "ordemId": 267,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 268,
+      "ordemId": 268,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 269,
+      "ordemId": 269,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 270,
+      "ordemId": 270,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 271,
+      "ordemId": 271,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 272,
+      "ordemId": 272,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 273,
+      "ordemId": 273,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 274,
+      "ordemId": 274,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 275,
+      "ordemId": 275,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 276,
+      "ordemId": 276,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 277,
+      "ordemId": 277,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 278,
+      "ordemId": 278,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 279,
+      "ordemId": 279,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 280,
+      "ordemId": 280,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 281,
+      "ordemId": 281,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 282,
+      "ordemId": 282,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 283,
+      "ordemId": 283,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 284,
+      "ordemId": 284,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 285,
+      "ordemId": 285,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 286,
+      "ordemId": 286,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 287,
+      "ordemId": 287,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 288,
+      "ordemId": 288,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 289,
+      "ordemId": 289,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 290,
+      "ordemId": 290,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 291,
+      "ordemId": 291,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 292,
+      "ordemId": 292,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 293,
+      "ordemId": 293,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 294,
+      "ordemId": 294,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 295,
+      "ordemId": 295,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 296,
+      "ordemId": 296,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 297,
+      "ordemId": 297,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 298,
+      "ordemId": 298,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 299,
+      "ordemId": 299,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 300,
+      "ordemId": 300,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 301,
+      "ordemId": 301,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 302,
+      "ordemId": 302,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 303,
+      "ordemId": 303,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 304,
+      "ordemId": 304,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 305,
+      "ordemId": 305,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 306,
+      "ordemId": 306,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 307,
+      "ordemId": 307,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 308,
+      "ordemId": 308,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 309,
+      "ordemId": 309,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 310,
+      "ordemId": 310,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 311,
+      "ordemId": 311,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 312,
+      "ordemId": 312,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 313,
+      "ordemId": 313,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 314,
+      "ordemId": 314,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 315,
+      "ordemId": 315,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 316,
+      "ordemId": 316,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 317,
+      "ordemId": 317,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 318,
+      "ordemId": 318,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 319,
+      "ordemId": 319,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 320,
+      "ordemId": 320,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 321,
+      "ordemId": 321,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 322,
+      "ordemId": 322,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 323,
+      "ordemId": 323,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 324,
+      "ordemId": 324,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 325,
+      "ordemId": 325,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 326,
+      "ordemId": 326,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 327,
+      "ordemId": 327,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 328,
+      "ordemId": 328,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 329,
+      "ordemId": 329,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 330,
+      "ordemId": 330,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 331,
+      "ordemId": 331,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 332,
+      "ordemId": 332,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 333,
+      "ordemId": 333,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 334,
+      "ordemId": 334,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 335,
+      "ordemId": 335,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 336,
+      "ordemId": 336,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 337,
+      "ordemId": 337,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 338,
+      "ordemId": 338,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 339,
+      "ordemId": 339,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 340,
+      "ordemId": 340,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 341,
+      "ordemId": 341,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 342,
+      "ordemId": 342,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 343,
+      "ordemId": 343,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 344,
+      "ordemId": 344,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 345,
+      "ordemId": 345,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 346,
+      "ordemId": 346,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 347,
+      "ordemId": 347,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 348,
+      "ordemId": 348,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 349,
+      "ordemId": 349,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 350,
+      "ordemId": 350,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 351,
+      "ordemId": 351,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 352,
+      "ordemId": 352,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 353,
+      "ordemId": 353,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 354,
+      "ordemId": 354,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 355,
+      "ordemId": 355,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 356,
+      "ordemId": 356,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 357,
+      "ordemId": 357,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 358,
+      "ordemId": 358,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 359,
+      "ordemId": 359,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 360,
+      "ordemId": 360,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 361,
+      "ordemId": 361,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 362,
+      "ordemId": 362,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 363,
+      "ordemId": 363,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 364,
+      "ordemId": 364,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 365,
+      "ordemId": 365,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 366,
+      "ordemId": 366,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 367,
+      "ordemId": 367,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 368,
+      "ordemId": 368,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 369,
+      "ordemId": 369,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 370,
+      "ordemId": 370,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 371,
+      "ordemId": 371,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 372,
+      "ordemId": 372,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 373,
+      "ordemId": 373,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 374,
+      "ordemId": 374,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 375,
+      "ordemId": 375,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 376,
+      "ordemId": 376,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 377,
+      "ordemId": 377,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 378,
+      "ordemId": 378,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 379,
+      "ordemId": 379,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 380,
+      "ordemId": 380,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 381,
+      "ordemId": 381,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 382,
+      "ordemId": 382,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 383,
+      "ordemId": 383,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 384,
+      "ordemId": 384,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 385,
+      "ordemId": 385,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 386,
+      "ordemId": 386,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 387,
+      "ordemId": 387,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 388,
+      "ordemId": 388,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 389,
+      "ordemId": 389,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 390,
+      "ordemId": 390,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 391,
+      "ordemId": 391,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 392,
+      "ordemId": 392,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 393,
+      "ordemId": 393,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 394,
+      "ordemId": 394,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 395,
+      "ordemId": 395,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 396,
+      "ordemId": 396,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 397,
+      "ordemId": 397,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 398,
+      "ordemId": 398,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 399,
+      "ordemId": 399,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 400,
+      "ordemId": 400,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 401,
+      "ordemId": 401,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 402,
+      "ordemId": 402,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 403,
+      "ordemId": 403,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 404,
+      "ordemId": 404,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 405,
+      "ordemId": 405,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 406,
+      "ordemId": 406,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 407,
+      "ordemId": 407,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 408,
+      "ordemId": 408,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 409,
+      "ordemId": 409,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 410,
+      "ordemId": 410,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 411,
+      "ordemId": 411,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 412,
+      "ordemId": 412,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 413,
+      "ordemId": 413,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 414,
+      "ordemId": 414,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 415,
+      "ordemId": 415,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 416,
+      "ordemId": 416,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 417,
+      "ordemId": 417,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 418,
+      "ordemId": 418,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 419,
+      "ordemId": 419,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 420,
+      "ordemId": 420,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 421,
+      "ordemId": 421,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 422,
+      "ordemId": 422,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 423,
+      "ordemId": 423,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 424,
+      "ordemId": 424,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 425,
+      "ordemId": 425,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 426,
+      "ordemId": 426,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 427,
+      "ordemId": 427,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 428,
+      "ordemId": 428,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 429,
+      "ordemId": 429,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 430,
+      "ordemId": 430,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 431,
+      "ordemId": 431,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 432,
+      "ordemId": 432,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 433,
+      "ordemId": 433,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 434,
+      "ordemId": 434,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 435,
+      "ordemId": 435,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 436,
+      "ordemId": 436,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 437,
+      "ordemId": 437,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 438,
+      "ordemId": 438,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 439,
+      "ordemId": 439,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 440,
+      "ordemId": 440,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 441,
+      "ordemId": 441,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 442,
+      "ordemId": 442,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 443,
+      "ordemId": 443,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 444,
+      "ordemId": 444,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 445,
+      "ordemId": 445,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 446,
+      "ordemId": 446,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 447,
+      "ordemId": 447,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 448,
+      "ordemId": 448,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 449,
+      "ordemId": 449,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 450,
+      "ordemId": 450,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 451,
+      "ordemId": 451,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 452,
+      "ordemId": 452,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 453,
+      "ordemId": 453,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 454,
+      "ordemId": 454,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 455,
+      "ordemId": 455,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 456,
+      "ordemId": 456,
+      "valorMaoDeObra": "600.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 457,
+      "ordemId": 457,
+      "valorMaoDeObra": "260.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 458,
+      "ordemId": 458,
+      "valorMaoDeObra": "650.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 459,
+      "ordemId": 459,
+      "valorMaoDeObra": "962.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 460,
+      "ordemId": 460,
+      "valorMaoDeObra": "466.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 461,
+      "ordemId": 461,
+      "valorMaoDeObra": "400.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 462,
+      "ordemId": 462,
+      "valorMaoDeObra": "780.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 463,
+      "ordemId": 463,
+      "valorMaoDeObra": "325.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 464,
+      "ordemId": 464,
+      "valorMaoDeObra": "641.50",
+      "status": "ABERTO"
+    },
+    {
+      "id": 465,
+      "ordemId": 465,
+      "valorMaoDeObra": "1400.67",
+      "status": "ABERTO"
+    },
+    {
+      "id": 466,
+      "ordemId": 466,
+      "valorMaoDeObra": "200.00",
+      "status": "ABERTO"
+    },
+    {
+      "id": 467,
+      "ordemId": 467,
+      "valorMaoDeObra": "520.42",
+      "status": "ABERTO"
+    },
+    {
+      "id": 468,
+      "ordemId": 468,
+      "valorMaoDeObra": "975.17",
+      "status": "ABERTO"
+    },
+    {
+      "id": 469,
+      "ordemId": 469,
+      "valorMaoDeObra": "320.83",
+      "status": "ABERTO"
+    },
+    {
+      "id": 470,
+      "ordemId": 470,
+      "valorMaoDeObra": "933.67",
+      "status": "ABERTO"
+    }
+  ]
+}

@@ -159,193 +159,232 @@ export const criarOrdem = async (req, res) => {
   }
 };
 
-// ---------------------- RETORNAR ORDEM ----------------------
-// Agora com tratamento de pecasComDefeito (alocação sequencial por item).
+// ---------------------- RETORNAR ORDEM (ajustada) ----------------------
 export const retornarOrdem = async (req, res) => {
   const t = await sequelize.transaction();
   try {
+    console.log('[RETORNO-OS][INICIO]', {
+      id: req.params.id,
+      itensCount: req.body.itens?.length || 0,
+      retornoTotal: req.body.retornoTotal,
+      fecharSemQuantidade: req.body.fecharSemQuantidade,
+      pecasComDefeito: req.body.pecasComDefeito
+    });
+
     const { id } = req.params;
     const itensRecebidos = Array.isArray(req.body.itens) ? req.body.itens : [];
     const retornoTotal = req.body.retornoTotal === true;
+    const fecharSemQuantidade = req.body.fecharSemQuantidade === true;
     const pecasComDefeito = Number(req.body.pecasComDefeito || 0);
-
-    console.log('[RETORNO-OS][INICIO]', { id, itensRecebidosCount: itensRecebidos.length, retornoTotal, pecasComDefeito });
 
     if (!Number.isFinite(pecasComDefeito) || pecasComDefeito < 0) {
       await t.rollback();
+      console.log('[RETORNO-OS][ERRO] pecasComDefeito inválido');
       return res.status(400).json({ success: false, error: 'pecasComDefeito inválido' });
     }
 
-    const ordem = await OrdemServico.findByPk(id, { include: ['itens', 'confeccao'], transaction: t });
+    const ordem = await OrdemServico.findByPk(id, {
+      include: ['itens', 'confeccao'],
+      transaction: t
+    });
     if (!ordem) {
       await t.rollback();
+      console.log('[RETORNO-OS][ERRO] OS não encontrada');
       return res.status(404).json({ success: false, error: 'OS não encontrada' });
     }
     if (ordem.status === 'RETORNADA') {
       await t.rollback();
+      console.log('[RETORNO-OS][ERRO] OS já retornada');
       return res.status(400).json({ success: false, error: 'OS já retornada' });
     }
 
-    // calcula total pendentes da OS e total digitado pelo front (quando aplicável)
     const totalPendentes = ordem.itens.reduce((s, it) => s + Number(it.pecasEsperadas || 0), 0);
     let totalDigitado = 0;
-    if (retornoTotal) {
+    if (itensRecebidos.length > 0) {
+      totalDigitado = itensRecebidos.reduce((s, i) => s + Number(i.pecasRetornadas || 0), 0);
+    } else if (retornoTotal && !fecharSemQuantidade) {
       totalDigitado = totalPendentes;
-    } else {
-      for (const it of ordem.itens) {
-        const f = itensRecebidos.find(i =>
-          (i.id && String(i.id) === String(it.id)) ||
-          (i.produtoId && String(i.produtoId) === String(it.produtoId) && String(i.tamanho).trim().toUpperCase() === String(it.tamanho).trim().toUpperCase())
-        );
-        totalDigitado += Number((f && f.pecasRetornadas) ? f.pecasRetornadas : 0);
-      }
     }
 
-    const maxForDefeito = retornoTotal ? totalPendentes : totalDigitado;
+    const maxForDefeito = (fecharSemQuantidade && itensRecebidos.length === 0)
+      ? totalPendentes
+      : (retornoTotal && itensRecebidos.length === 0 ? totalPendentes : totalDigitado);
+
     if (pecasComDefeito > maxForDefeito) {
       await t.rollback();
-      return res.status(400).json({ success: false, error: `pecasComDefeito (${pecasComDefeito}) excede o máximo permitido (${maxForDefeito})` });
+      console.log('[RETORNO-OS][ERRO] Defeitos excedem o máximo permitido', { pecasComDefeito, maxForDefeito });
+      return res.status(400).json({ success: false, error: 'Defeitos excedem o máximo permitido' });
     }
 
     const resultados = [];
+    let restanteDefeito = pecasComDefeito;
     let totalRestanteDepois = 0;
 
-    // agora distribuímos os defeitos sequencialmente entre os itens recebidos
-    let restanteDefeito = pecasComDefeito;
-
     for (const item of ordem.itens) {
-      try {
-        // encontra correspondência do front (por id ou por produto+tamanho)
-        const frontendItem = itensRecebidos.find(i =>
-          (i.id && String(i.id) === String(item.id)) ||
-          (i.produtoId && String(i.produtoId) === String(item.produtoId) && String(i.tamanho).trim().toUpperCase() === String(item.tamanho).trim().toUpperCase())
-        );
+      const frontendItem = itensRecebidos.find(i =>
+        (i.id && String(i.id) === String(item.id)) ||
+        (i.produtoId && String(i.produtoId) === String(item.produtoId) &&
+          String(i.tamanho).trim().toUpperCase() === String(item.tamanho).trim().toUpperCase())
+      );
 
-        const pecasEsperadasAntes = Number(item.pecasEsperadas || 0);
+      const pecasEsperadasAntes = Number(item.pecasEsperadas || 0);
 
-        // se retornoTotal, consideramos todas as peças como "digitadas" para este retorno
-        const pecasDigitadas = retornoTotal ? pecasEsperadasAntes : Number(frontendItem ? (frontendItem.pecasRetornadas || 0) : 0);
+      // Quantidade retornada boa informada pelo frontend (ou assumida em retornoTotal)
+      let pecasDigitadas = 0;
+      if (itensRecebidos.length > 0) pecasDigitadas = Number(frontendItem ? (frontendItem.pecasRetornadas || 0) : 0);
+      else if (retornoTotal && !fecharSemQuantidade) pecasDigitadas = pecasEsperadasAntes;
 
-        // aloca defeitos para este item (consome restanteDefeito sequencialmente)
-        const defeitoAlocado = Math.min(pecasDigitadas, restanteDefeito);
-        restanteDefeito = Math.max(0, restanteDefeito - defeitoAlocado);
+      // Disponível neste item para alocar defeitos
+      let availableForDefect = itensRecebidos.length > 0
+        ? pecasDigitadas
+        : (retornoTotal || fecharSemQuantidade ? pecasEsperadasAntes : pecasDigitadas);
 
-        // peças que realmente irão para 'pronta' (não-defeituosas) - limitadas ao esperado
-        const pecasParaPronta = Math.min(Math.max(pecasDigitadas - defeitoAlocado, 0), pecasEsperadasAntes);
+      // Aloca defeitos neste item a partir do pool restante
+      const defeitoAlocado = Math.min(availableForDefect, restanteDefeito);
+      restanteDefeito = Math.max(0, restanteDefeito - defeitoAlocado);
 
-        // quanto iremos reduzir de 'aberta' no estoque: sempre pelo total devolvido (inclui defeitos)
-        const reduzirAberta = retornoTotal ? pecasEsperadasAntes : Math.min(pecasDigitadas, pecasEsperadasAntes);
+      // Peças boas que vão para pronta (digitadas menos defeitos alocados, não ultrapassar o esperado)
+      const pecasParaPronta = Math.min(Math.max(pecasDigitadas - defeitoAlocado, 0), pecasEsperadasAntes);
 
-        // após operação, quantas peças ficam pendentes na OS
-        const pecasRestantesNaOS = retornoTotal ? 0 : Math.max(pecasEsperadasAntes - pecasDigitadas, 0);
+      // Redução da quantidade aberta na OS (boas + defeitos alocados são considerados retornados)
+      const reduzirAberta = (retornoTotal || fecharSemQuantidade)
+        ? pecasEsperadasAntes
+        : Math.min(Math.max(pecasDigitadas + defeitoAlocado, 0), pecasEsperadasAntes);
 
-        console.log('[RETORNO-OS] itemId=', item.id,
-          'digitadas=', pecasDigitadas,
-          'defeitoAlocado=', defeitoAlocado,
-          'paraPronta=', pecasParaPronta,
-          'reduzirAberta=', reduzirAberta,
-          'restantesNaOS=', pecasRestantesNaOS
-        );
+      const pecasRestantesNaOS = Math.max(0, pecasEsperadasAntes - reduzirAberta);
 
-        // localizar ProdutoTamanho (normalize tamanho)
-        const tamanhoNorm = String(item.tamanho || '').trim().toUpperCase();
+      console.log('[RETORNO-OS][ITEM]', {
+        itemId: item.id,
+        pecasEsperadasAntes,
+        pecasDigitadas,
+        defeitoAlocado,
+        pecasParaPronta,
+        pecasRestantesNaOS,
+        reduzirAberta
+      });
 
-        let produtoTamanho = await ProdutoTamanho.findOne({
-          where: { produtoId: item.produtoId, tamanho: tamanhoNorm },
-          transaction: t
-        });
-
-        if (!produtoTamanho) {
-          // fallback: busca case-insensitive / resolve produto por codigo se necessário
-          const produtoResolve = await resolveProduto(item.produtoId, t);
-          if (produtoResolve) {
-            produtoTamanho = await ProdutoTamanho.findOne({
-              where: { produtoId: produtoResolve.id, [Op.and]: sequelize.where(fn('upper', col('tamanho')), tamanhoNorm) },
-              transaction: t
-            });
-          }
+      // localizar ProdutoTamanho (normaliza tamanho)
+      const tamanhoNorm = String(item.tamanho || '').trim().toUpperCase();
+      let produtoTamanho = await ProdutoTamanho.findOne({
+        where: { produtoId: item.produtoId, tamanho: tamanhoNorm },
+        transaction: t
+      });
+      if (!produtoTamanho) {
+        const produtoResolve = await resolveProduto(item.produtoId, t);
+        if (produtoResolve) {
+          produtoTamanho = await ProdutoTamanho.findOne({
+            where: {
+              produtoId: produtoResolve.id,
+              [Op.and]: sequelize.where(fn('upper', col('tamanho')), tamanhoNorm)
+            },
+            transaction: t
+          });
         }
-
-        if (!produtoTamanho) {
-          resultados.push({ itemId: item.id, status: 'erro', mensagem: 'ProdutoTamanho não encontrado' });
-          continue;
-        }
-
-        // atualiza ou cria estoque:
-        let estoque = await EstoqueProduto.findOne({ where: { produtoTamanhoId: produtoTamanho.id }, transaction: t });
-        if (!estoque) {
-          // estado inicial pós-retorno: aberta reduzida pelo que foi devolvido, pronta recebe apenas as não-defeituosas
-          const abertaInicial = Math.max(0, pecasEsperadasAntes - reduzirAberta);
-          const prontaInicial = pecasParaPronta;
-          estoque = await EstoqueProduto.create({
-            produtoTamanhoId: produtoTamanho.id,
-            quantidadeAberta: abertaInicial,
-            quantidadePronta: prontaInicial
-          }, { transaction: t });
-        } else {
-          estoque.quantidadeAberta = Math.max(Number(estoque.quantidadeAberta || 0) - reduzirAberta, 0);
-          estoque.quantidadePronta = Number(estoque.quantidadePronta || 0) + pecasParaPronta;
-          await estoque.save({ transaction: t });
-        }
-
-        // atualiza item da OS: acumula pecasReais com o que foi efetivamente enviado para pronta,
-        // e ajusta pecasEsperadas conforme o que restou (ou 0 se retornoTotal)
-        item.pecasReais = Number(item.pecasReais || 0) + pecasParaPronta;
-        item.pecasEsperadas = pecasRestantesNaOS;
-        await item.save({ transaction: t });
-
-        // financeiro: **usar o total retornado (pecasDigitadas)** — inclui peças com defeito
-        const produtoForCalc = await Produto.findByPk(item.produtoId, { transaction: t });
-        const duzias = pecasDigitadas / 12;
-        const valorMaoDeObra = produtoForCalc && produtoForCalc.valorMaoDeObraDuzia
-          ? Number(produtoForCalc.valorMaoDeObraDuzia) * duzias
-          : 0;
-
-        const financeiro = await Financeiro.create({
-          ordemId: ordem.id,
-          confeccaoId: ordem.confeccaoId,
-          valorMaoDeObra,
-          // diferenca guarda variação entre retornado e esperado (pode ser negativo/positivo)
-          diferenca: pecasDigitadas - pecasEsperadasAntes,
-          status: 'ABERTO'
-        }, { transaction: t });
-
-        totalRestanteDepois += pecasRestantesNaOS;
-        resultados.push({
-          itemId: item.id,
-          status: 'ok',
-          pecasDigitadas,
-          defeitoAlocado,
-          pecasParaPronta,
-          reduzirAberta,
-          estoqueId: estoque.id,
-          financeiroId: financeiro.id
-        });
-
-      } catch (itemError) {
-        console.error('[RETORNO-OS][ERRO][ITEM]', item.id, itemError);
-        resultados.push({ itemId: item.id, status: 'erro', mensagem: itemError.message });
       }
+
+      if (!produtoTamanho) {
+        resultados.push({ itemId: item.id, status: 'erro', mensagem: 'ProdutoTamanho não encontrado' });
+        continue;
+      }
+
+      // Atualiza/Cria EstoqueProduto:
+      let estoque = await EstoqueProduto.findOne({ where: { produtoTamanhoId: produtoTamanho.id }, transaction: t });
+      if (!estoque) {
+        estoque = await EstoqueProduto.create({
+          produtoTamanhoId: produtoTamanho.id,
+          quantidadeAberta: Math.max(0, pecasEsperadasAntes - reduzirAberta),
+          quantidadePronta: pecasParaPronta
+        }, { transaction: t });
+        console.log('[RETORNO-OS][ESTOQUE] Novo estoque criado', { produtoTamanhoId: produtoTamanho.id, aberta: estoque.quantidadeAberta, pronta: estoque.quantidadePronta });
+      } else {
+        estoque.quantidadeAberta = Math.max(Number(estoque.quantidadeAberta || 0) - reduzirAberta, 0);
+        estoque.quantidadePronta = Number(estoque.quantidadePronta || 0) + pecasParaPronta;
+        await estoque.save({ transaction: t });
+        console.log('[RETORNO-OS][ESTOQUE] Estoque atualizado', { produtoTamanhoId: produtoTamanho.id, aberta: estoque.quantidadeAberta, pronta: estoque.quantidadePronta });
+      }
+
+      // Atualiza item da OS
+      item.pecasReais = Number(item.pecasReais || 0) + pecasParaPronta;
+      item.pecasDefeituosas = Number(item.pecasDefeituosas || 0) + defeitoAlocado;
+      item.pecasEsperadas = pecasRestantesNaOS;
+      await item.save({ transaction: t });
+
+      // === Lançamento Financeiro (cálculo conforme regra solicitada) ===
+      const produtoForCalc = await Produto.findByPk(item.produtoId, { transaction: t });
+      const valorUnitario = (produtoForCalc?.valorMaoDeObraDuzia || 0) / 12; // valor por peça baseado na dúzia
+      const valorPorPeca = produtoForCalc?.valorMaoDeObraPeca || 0;
+
+      // calcular tolerância e limiteMin (base paga por dúzia)
+      const tolerancia = Math.floor(pecasEsperadasAntes * 0.02);
+      const limiteMin = pecasEsperadasAntes - tolerancia; // base por dúzia a ser paga sempre
+
+      const pecasPagas = pecasParaPronta + defeitoAlocado; // total pago (boas + defeitos)
+      const delta = pecasPagas - limiteMin; // positivo -> excedente que será pago por peça; negativo -> falta e desconto por peça
+
+      // garantir base não negativa
+      const baseDuziaCount = Math.max(0, limiteMin);
+
+      // valor = (base por dúzia) * (valor por peça da dúzia) + delta * valorPorPeca
+      // quando delta é negativo isso resulta em desconto
+      const valorMaoDeObra = baseDuziaCount * valorUnitario + (delta * valorPorPeca);
+
+      console.log('[RETORNO-OS][MAO-DE-OBRA][DETALHE]', {
+        itemId: item.id,
+        pecasEsperadasAntes,
+        tolerancia,
+        limiteMin,
+        pecasPagas,
+        baseDuziaCount,
+        delta,
+        valorUnitario,
+        valorPorPeca,
+        valorMaoDeObra
+      });
+
+      // Criar lançamento financeiro
+      const financeiro = await Financeiro.create({
+        ordemId: ordem.id,
+        confeccaoId: ordem.confeccaoId,
+        valorMaoDeObra,
+        pecasProduzidas: pecasPagas,
+        status: 'ABERTO'
+      }, { transaction: t });
+
+      totalRestanteDepois += pecasRestantesNaOS;
+      resultados.push({
+        itemId: item.id,
+        pecasBoas: pecasParaPronta,
+        pecasDefeito: defeitoAlocado,
+        pecasPagas,
+        valorMaoDeObra,
+        financeiroId: financeiro.id,
+        status: 'ok'
+      });
     }
 
-    // define status da OS com base no total restante
+    // atualizar status da OS
     if (totalRestanteDepois > 0) {
       await ordem.update({ status: 'EM_PRODUCAO', dataRetorno: null }, { transaction: t });
+      console.log('[RETORNO-OS][STATUS] EM_PRODUCAO', { totalRestanteDepois });
     } else {
       await ordem.update({ status: 'RETORNADA', dataRetorno: new Date() }, { transaction: t });
+      console.log('[RETORNO-OS][STATUS] RETORNADA');
     }
 
     await t.commit();
     const ordemAtualizada = await OrdemServico.findByPk(id, { include: ['itens', 'confeccao'] });
-    console.log('[RETORNO-OS][SUCESSO] ordem retornada id=', id);
+    console.log('[RETORNO-OS][FIM]');
     return res.json({ success: true, ordem: ordemAtualizada, detalhesItens: resultados });
 
   } catch (error) {
     await t.rollback();
-    console.error('[RETORNO-OS][ERRO] Falha geral', error);
-    return res.status(500).json({ success: false, error: 'Falha ao retornar ordem', message: error.message });
+    console.error('[RETORNO-OS][ERRO]', error);
+    return res.status(500).json({ success: false, error: error.message });
   }
 };
+
+
+
 
 // ---------------------- REABRIR ORDEM ----------------------
 export const reabrirOrdem = async (req, res) => {
