@@ -1,22 +1,22 @@
 // src/models/index.js
+import sequelize from '../config/database.js';
 
+// Models principais
 import OrdemServico from './ordemServico-model.js';
 import OrdemItem from './ordemItem-model.js';
 import Produto from './produto-model.js';
 import ProdutoTamanho from './produtoTamanho-model.js';
-import EstoqueProduto from './EstoqueProduto-model.js';
+import EstoqueProduto from './estoqueProduto-model.js';
 import Material from './material-model.js';
-import EstoqueMaterial from './EstoqueMaterial-model.js';
+import EstoqueMaterial from './estoqueMaterial-model.js';
 import Financeiro from './financeiro-model.js';
 import Confeccao from './confeccao-model.js';
-
-// Novos models
-import {User} from './user-model.js';
+import { User } from './user-model.js';
 import Role from './role-model.js';
 import { Audit } from './audit-model.js';
-
-
-import sequelize from '../config/database.js';
+import ValeMaterial from './vale-material-model.js';
+import MovimentacaoMaterial from './movimentacaoMaterial-model.js';
+import { Carga, CargaItem } from './carga-model.js';
 
 // ----------------------
 // OrdemServico x OrdemItem
@@ -39,8 +39,29 @@ EstoqueProduto.belongsTo(ProdutoTamanho, { foreignKey: 'produtoTamanhoId', as: '
 // ----------------------
 // Material x EstoqueMaterial
 // ----------------------
-Material.hasOne(EstoqueMaterial, { foreignKey: 'materialId', as: 'estoqueMaterial' });
+Material.hasOne(EstoqueMaterial, { foreignKey: 'materialId', as: 'estoque' });
 EstoqueMaterial.belongsTo(Material, { foreignKey: 'materialId', as: 'materialPai' });
+
+// ----------------------
+// ValeMaterial x User
+// ----------------------
+ValeMaterial.belongsTo(User, { foreignKey: 'usuarioId', as: 'usuario' });
+User.hasMany(ValeMaterial, { foreignKey: 'usuarioId', as: 'valesCriados' });
+
+// ----------------------
+// MovimentacaoMaterial x Material / Confeccao / User / ValeMaterial
+// ----------------------
+MovimentacaoMaterial.belongsTo(Material, { foreignKey: 'materialId', as: 'materialPai' });
+Material.hasMany(MovimentacaoMaterial, { foreignKey: 'materialId', as: 'movimentacoes' });
+
+MovimentacaoMaterial.belongsTo(Confeccao, { foreignKey: 'confeccaoId', as: 'confeccao' });
+Confeccao.hasMany(MovimentacaoMaterial, { foreignKey: 'confeccaoId', as: 'movimentacoes' });
+
+MovimentacaoMaterial.belongsTo(User, { foreignKey: 'usuarioId', as: 'usuario' });
+User.hasMany(MovimentacaoMaterial, { foreignKey: 'usuarioId', as: 'movimentacoesUsuario' });
+
+MovimentacaoMaterial.belongsTo(ValeMaterial, { foreignKey: 'valeMaterialId', as: 'vale' });
+ValeMaterial.hasMany(MovimentacaoMaterial, { foreignKey: 'valeMaterialId', as: 'movimentacoes' });
 
 // ----------------------
 // OrdemServico x Confeccao
@@ -67,9 +88,28 @@ Audit.belongsTo(User, { foreignKey: 'usuarioId', as: 'usuario' });
 User.hasMany(Audit, { foreignKey: 'usuarioId', as: 'auditorias' });
 
 // ----------------------
+// Material x ValeMaterial (opcional via tabela de itens)
+// ----------------------
+Material.belongsToMany(ValeMaterial, { through: 'vale_material_itens', foreignKey: 'materialId', as: 'vales' });
+ValeMaterial.belongsToMany(Material, { through: 'vale_material_itens', foreignKey: 'valeId', as: 'materiais' });
+
+// ----------------------
+// Carga x CargaItem
+// ----------------------
+Carga.hasMany(CargaItem, { foreignKey: 'cargaId', as: 'itens' });
+CargaItem.belongsTo(Carga, { foreignKey: 'cargaId', as: 'carga' });
+
+// ----------------------
+// CargaItem x ProdutoTamanho
+// ----------------------
+CargaItem.belongsTo(ProdutoTamanho, { foreignKey: 'produtoTamanhoId', as: 'produtoTamanho' });
+ProdutoTamanho.hasMany(CargaItem, { foreignKey: 'produtoTamanhoId', as: 'cargaItens' });
+
+// ----------------------
 // Exportações
 // ----------------------
 export {
+  sequelize,
   OrdemServico,
   OrdemItem,
   Produto,
@@ -82,5 +122,8 @@ export {
   User,
   Role,
   Audit,
-  sequelize
+  ValeMaterial,
+  MovimentacaoMaterial,
+  Carga,
+  CargaItem
 };

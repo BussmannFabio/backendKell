@@ -1,3 +1,4 @@
+// controllers/produto-controller.js
 import Produto from '../models/produto-model.js';
 import ProdutoTamanho from '../models/produtoTamanho-model.js';
 
@@ -45,8 +46,59 @@ export const buscarProdutoPorId = async (req, res) => {
   }
 };
 
+// Buscar tamanhos por produto (por ID)
+export const buscarTamanhosPorProduto = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const produto = await Produto.findByPk(id, {
+      include: [{ model: ProdutoTamanho, as: 'tamanhos', attributes: ['id', 'tamanho', 'estoqueMinimo'] }]
+    });
+
+    if (!produto) return res.status(404).json({ error: 'Produto não encontrado.' });
+
+    const tamanhos = produto.tamanhos?.map(t => ({
+      id: t.id,
+      tamanho: t.tamanho,
+      estoqueMinimo: t.estoqueMinimo
+    })) || [];
+
+    res.json({ produtoId: produto.id, codigo: produto.codigo, tamanhos });
+  } catch (error) {
+    console.error('Erro ao buscar tamanhos do produto:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// *** NOVA função: Buscar tamanhos por CÓDIGO do produto ***
+export const buscarTamanhosPorCodigo = async (req, res) => {
+  try {
+    const { codigo } = req.params;
+    // aceita codigo como string ou number - tenta converter para number quando possível
+    const parsedCodigo = (codigo !== undefined && codigo !== null && !isNaN(Number(codigo))) ? Number(codigo) : codigo;
+
+    const produto = await Produto.findOne({
+      where: { codigo: parsedCodigo },
+      include: [{ model: ProdutoTamanho, as: 'tamanhos', attributes: ['id', 'tamanho', 'estoqueMinimo'] }]
+    });
+
+    if (!produto) {
+      return res.status(404).json({ error: `Produto com codigo ${codigo} não encontrado.` });
+    }
+
+    const tamanhos = produto.tamanhos?.map(t => ({
+      id: t.id,
+      tamanho: t.tamanho,
+      estoqueMinimo: t.estoqueMinimo
+    })) || [];
+
+    return res.json({ produtoId: produto.id, codigo: produto.codigo, tamanhos });
+  } catch (error) {
+    console.error('Erro ao buscar tamanhos por codigo:', error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
 // Atualizar produto e tamanhos
-// controllers/produto-controller.js
 export const atualizarProduto = async (req, res) => {
   const { id } = req.params;
   const { codigo, valorMaoDeObraDuzia, valorMaoDeObraPeca, tamanhos } = req.body;
@@ -59,7 +111,6 @@ export const atualizarProduto = async (req, res) => {
       return res.status(404).json({ error: 'Produto não encontrado' });
     }
 
-    // Atualiza apenas campos enviados (evita sobrescrever com undefined/null)
     const toUpdate = {};
     if (codigo !== undefined) toUpdate.codigo = codigo;
     if (valorMaoDeObraDuzia !== undefined) toUpdate.valorMaoDeObraDuzia = valorMaoDeObraDuzia;
@@ -69,17 +120,14 @@ export const atualizarProduto = async (req, res) => {
       await produto.update(toUpdate, { transaction });
     }
 
-    // Se vier array de tamanhos, atualiza/cria individualmente sem apagar tudo
     if (Array.isArray(tamanhos)) {
       for (const t of tamanhos) {
-        // sanitize/normalize
         const tamObj = {
           tamanho: t.tamanho,
           estoqueMinimo: t.estoqueMinimo
         };
 
         if (t.id) {
-          // tenta atualizar tamanho existente (somente se pertencer a este produto)
           const existente = await ProdutoTamanho.findOne({
             where: { id: t.id, produtoId: id },
             transaction
@@ -88,19 +136,12 @@ export const atualizarProduto = async (req, res) => {
           if (existente) {
             await existente.update(tamObj, { transaction });
           } else {
-            // id informado mas não encontrado / não pertence a esse produto:
-            // criamos novo registro para evitar perder dados — ajuste se preferir erro
             await ProdutoTamanho.create({ produtoId: id, ...tamObj }, { transaction });
           }
         } else {
-          // novo tamanho — cria
           await ProdutoTamanho.create({ produtoId: id, ...tamObj }, { transaction });
         }
       }
-
-      // Opcional: NÃO apagar automaticamente tamanhos omitidos no payload.
-      // Se quiser remover explicitamente, passe no payload algo como `removerTamanhos: [id1, id2]`
-      // e trate aqui: await ProdutoTamanho.destroy({ where: { id: removerIds, produtoId: id }, transaction });
     }
 
     await transaction.commit();
@@ -114,7 +155,6 @@ export const atualizarProduto = async (req, res) => {
   }
 };
 
-
 // Deletar produto
 export const deletarProduto = async (req, res) => {
   try {
@@ -127,6 +167,60 @@ export const deletarProduto = async (req, res) => {
 
     res.json({ message: 'Produto deletado com sucesso' });
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Buscar códigos de produtos a partir de IDs
+export const buscarCodigosPorIds = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'IDs inválidos ou ausentes.' });
+    }
+
+    const produtos = await Produto.findAll({
+      where: { id: ids },
+      attributes: ['id', 'codigo']
+    });
+
+    if (!produtos.length) {
+      console.warn('[ProdutoController] Nenhum produto encontrado para os IDs:', ids);
+      return res.status(404).json({ error: 'Nenhum produto encontrado para os IDs fornecidos.' });
+    }
+
+    const map = {};
+    for (const p of produtos) {
+      map[p.id] = p.codigo;
+    }
+
+    console.log('[ProdutoController] Produtos encontrados para IDs:', map);
+
+    res.json({ success: true, produtos: map });
+  } catch (error) {
+    console.error('Erro ao buscar códigos dos produtos:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Buscar produto por código (com tamanhos)
+export const buscarProdutoPorCodigo = async (req, res) => {
+  try {
+    const { codigo } = req.params;
+    const parsedCodigo = (codigo !== undefined && codigo !== null && !isNaN(Number(codigo))) ? Number(codigo) : codigo;
+
+    const produto = await Produto.findOne({
+      where: { codigo: parsedCodigo },
+      include: 'tamanhos'
+    });
+
+    if (!produto) {
+      return res.status(404).json({ error: `Produto com código ${codigo} não encontrado.` });
+    }
+
+    res.json(produto);
+  } catch (error) {
+    console.error('Erro ao buscar produto por código:', error);
     res.status(500).json({ error: error.message });
   }
 };
