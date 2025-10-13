@@ -29,7 +29,8 @@ app.use(cors({
   origin: [
     'http://localhost:4200',
     'http://192.168.10.19:4200', // frontend da tua máquina
-    /\.192\.168\.10\.\d{1,3}$/ // qualquer PC da rede local
+    /\.192\.168\.10\.\d{1,3}$/,
+    'https://front-end-kell.vercel.app'
   ],
   methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
   credentials: true
