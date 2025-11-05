@@ -1,35 +1,33 @@
 import { Produto, ProdutoTamanho } from '../models/index.js';
 
-/* ===================== */
-/* SOLUÇÃO 100% GARANTIDA */
-/* ===================== */
+/* ==========================================================
+   🔥 CONTROLLER COMPLETO E ESTÁVEL
+   ========================================================== */
 
-/* ---------------------- GET ALL - JUNÇÃO MANUAL ---------------------- */
+/* ---------------------- GET ALL ---------------------- */
 export async function listarProdutos(req, res) {
-  console.log('🔥 Entrando em listarProdutos controller real');
+  console.log('🔥 Entrando em listarProdutos controller');
 
   try {
-    console.log('🔄 SOLUÇÃO ALTERNATIVA - Buscando produtos com junção manual');
-    
-    // Busca todos os produtos
-    const produtos = await Produto.findAll({
-      order: [['id', 'ASC']],
-    });
+    console.log('🔄 Etapa 1: Buscando todos os produtos');
+    const produtos = await Produto.findAll({ order: [['id', 'ASC']] });
+    console.log(`✅ ${produtos.length} produtos encontrados`);
 
-    // Busca todos os tamanhos
-    const todosTamanhos = await ProdutoTamanho.findAll({
-      order: [['produtoId', 'ASC'], ['tamanho', 'ASC']]
+    console.log('🔄 Etapa 2: Buscando todos os tamanhos');
+    const tamanhos = await ProdutoTamanho.findAll({
+      order: [['produtoId', 'ASC'], ['tamanho', 'ASC']],
     });
+    console.log(`✅ ${tamanhos.length} tamanhos encontrados`);
 
-    // Combina os dados manualmente (como um JOIN manual)
-    const produtosComTamanhos = produtos.map(produto => {
-      const tamanhosDoProduto = todosTamanhos
-        .filter(t => t.produtoId === produto.id)
-        .map(t => ({
+    console.log('🔄 Etapa 3: Montando estrutura final');
+    const produtosComTamanhos = produtos.map((produto) => {
+      const tamanhosDoProduto = tamanhos
+        .filter((t) => t.produtoId === produto.id)
+        .map((t) => ({
           id: t.id,
           produtoId: t.produtoId,
           tamanho: t.tamanho,
-          estoqueMinimo: t.estoqueMinimo
+          estoqueMinimo: t.estoqueMinimo,
         }));
 
       return {
@@ -40,76 +38,89 @@ export async function listarProdutos(req, res) {
         valorMaoDeObraPeca: produto.valorMaoDeObraPeca,
         precoVendaDuzia: produto.precoVendaDuzia,
         precoVendaPeca: produto.precoVendaPeca,
-        tamanhos: tamanhosDoProduto
+        tamanhos: tamanhosDoProduto,
       };
     });
 
-    console.log(`✅ SUCESSO: ${produtosComTamanhos.length} produtos processados`);
-    res.json(produtosComTamanhos);
+    console.log(`✅ ${produtosComTamanhos.length} produtos prontos`);
+    return res.json(produtosComTamanhos);
+
   } catch (error) {
     console.error('❌ ERRO CRÍTICO em listarProdutos:', error);
-    res.status(500).json({ 
-      error: 'Erro interno do servidor',
-      message: error.message
-    });
+    return res.status(500).json({ error: 'Erro interno do servidor', message: error.message });
   }
 }
 
-/* ---------------------- GET BY ID - JUNÇÃO MANUAL ---------------------- */
+/* ---------------------- GET BY ID ---------------------- */
 export async function buscarProdutoPorId(req, res) {
   try {
     const { id } = req.params;
-    
-    // Busca o produto
-    const produto = await Produto.findByPk(id);
-    if (!produto) {
-      return res.status(404).json({ error: 'Produto não encontrado' });
-    }
+    console.log(`🔍 Buscando produto ID: ${id}`);
 
-    // Busca os tamanhos desse produto específico
+    const produto = await Produto.findByPk(id);
+    if (!produto) return res.status(404).json({ error: 'Produto não encontrado' });
+
     const tamanhos = await ProdutoTamanho.findAll({
       where: { produtoId: id },
-      order: [['tamanho', 'ASC']]
+      order: [['tamanho', 'ASC']],
     });
 
-    // Combina os dados
-    const produtoComTamanhos = {
-      id: produto.id,
-      codigo: produto.codigo,
-      descricao: produto.descricao,
-      valorMaoDeObraDuzia: produto.valorMaoDeObraDuzia,
-      valorMaoDeObraPeca: produto.valorMaoDeObraPeca,
-      precoVendaDuzia: produto.precoVendaDuzia,
-      precoVendaPeca: produto.precoVendaPeca,
-      tamanhos: tamanhos.map(t => ({
+    return res.json({
+      ...produto.toJSON(),
+      tamanhos: tamanhos.map((t) => ({
         id: t.id,
         produtoId: t.produtoId,
         tamanho: t.tamanho,
-        estoqueMinimo: t.estoqueMinimo
-      }))
-    };
-
-    res.json(produtoComTamanhos);
-  } catch (error) {
-    console.error('Erro ao buscar produto por ID:', error);
-    res.status(500).json({ 
-      error: 'Erro ao buscar produto',
-      message: error.message
+        estoqueMinimo: t.estoqueMinimo,
+      })),
     });
+  } catch (error) {
+    console.error('❌ Erro ao buscar produto por ID:', error);
+    return res.status(500).json({ error: 'Erro ao buscar produto', message: error.message });
   }
 }
 
 /* ---------------------- CREATE ---------------------- */
 export async function criarProduto(req, res) {
   try {
-    const produto = await Produto.create(req.body);
-    res.status(201).json(produto);
-  } catch (error) {
-    console.error('Erro ao criar produto:', error);
-    res.status(500).json({ 
-      error: 'Erro ao criar produto',
-      message: error.message
+    console.log('🆕 Criando novo produto:', req.body);
+
+    const { tamanhos, ...produtoData } = req.body;
+
+    const produto = await Produto.create({
+      codigo: produtoData.codigo,
+      descricao: produtoData.descricao,
+      valorMaoDeObraDuzia: produtoData.valorMaoDeObraDuzia || 0,
+      valorMaoDeObraPeca: produtoData.valorMaoDeObraPeca || null,
+      precoVendaDuzia: produtoData.precoVendaDuzia || 0,
+      precoVendaPeca: null, // sempre null
     });
+
+    // Se houver tamanhos, criar os registros em ProdutoTamanho
+    if (tamanhos && Array.isArray(tamanhos)) {
+      const tamanhosParaCriar = tamanhos.map(t => ({
+        ...t,
+        produtoId: produto.id
+      }));
+      await ProdutoTamanho.bulkCreate(tamanhosParaCriar);
+      console.log(`✅ ${tamanhos.length} tamanhos criados para o produto ID: ${produto.id}`);
+    }
+
+    console.log('✅ Produto criado com sucesso ID:', produto.id);
+
+    // Buscar o produto com seus tamanhos para retornar
+    const produtoComTamanhos = await Produto.findByPk(produto.id, {
+      include: [{
+        model: ProdutoTamanho,
+        as: 'tamanhos',
+        attributes: ['id', 'produtoId', 'tamanho', 'estoqueMinimo']
+      }]
+    });
+
+    return res.status(201).json(produtoComTamanhos);
+  } catch (error) {
+    console.error('❌ Erro ao criar produto:', error);
+    return res.status(500).json({ error: 'Erro ao criar produto', message: error.message });
   }
 }
 
@@ -117,20 +128,26 @@ export async function criarProduto(req, res) {
 export async function atualizarProduto(req, res) {
   try {
     const { id } = req.params;
+    console.log(`✏️ Atualizando produto ID: ${id}`);
+
     const produto = await Produto.findByPk(id);
+    if (!produto) return res.status(404).json({ error: 'Produto não encontrado' });
 
-    if (!produto) {
-      return res.status(404).json({ error: 'Produto não encontrado' });
-    }
+    const updateData = {
+      codigo: req.body.codigo ?? produto.codigo,
+      descricao: req.body.descricao ?? produto.descricao,
+      valorMaoDeObraDuzia: req.body.valorMaoDeObraDuzia ?? produto.valorMaoDeObraDuzia,
+      valorMaoDeObraPeca: req.body.valorMaoDeObraPeca ?? produto.valorMaoDeObraPeca,
+      precoVendaDuzia: req.body.precoVendaDuzia ?? produto.precoVendaDuzia,
+      precoVendaPeca: null, // mantém null
+    };
 
-    await produto.update(req.body);
-    res.json(produto);
+    await produto.update(updateData);
+    console.log('✅ Produto atualizado com sucesso');
+    return res.json(produto);
   } catch (error) {
-    console.error('Erro ao atualizar produto:', error);
-    res.status(500).json({ 
-      error: 'Erro ao atualizar produto',
-      message: error.message
-    });
+    console.error('❌ Erro ao atualizar produto:', error);
+    return res.status(500).json({ error: 'Erro ao atualizar produto', message: error.message });
   }
 }
 
@@ -138,115 +155,85 @@ export async function atualizarProduto(req, res) {
 export async function deletarProduto(req, res) {
   try {
     const { id } = req.params;
-    const produto = await Produto.findByPk(id);
+    console.log(`🗑️ Excluindo produto ID: ${id}`);
 
-    if (!produto) {
-      return res.status(404).json({ error: 'Produto não encontrado' });
-    }
+    const produto = await Produto.findByPk(id);
+    if (!produto) return res.status(404).json({ error: 'Produto não encontrado' });
 
     await produto.destroy();
-    res.json({ message: 'Produto excluído com sucesso' });
+    console.log('✅ Produto excluído com sucesso');
+    return res.json({ message: 'Produto excluído com sucesso' });
   } catch (error) {
-    console.error('Erro ao excluir produto:', error);
-    res.status(500).json({ 
-      error: 'Erro ao excluir produto',
-      message: error.message
-    });
+    console.error('❌ Erro ao excluir produto:', error);
+    return res.status(500).json({ error: 'Erro ao excluir produto', message: error.message });
   }
 }
 
-/* ---------------------- GET TAMANHOS POR PRODUTO ---------------------- */
+/* ---------------------- TAMANHOS ---------------------- */
 export async function buscarTamanhosPorProduto(req, res) {
   try {
     const { id } = req.params;
-    const tamanhos = await ProdutoTamanho.findAll({ 
+    console.log(`📏 Buscando tamanhos do produto ID: ${id}`);
+
+    const tamanhos = await ProdutoTamanho.findAll({
       where: { produtoId: id },
-      order: [['tamanho', 'ASC']]
+      order: [['tamanho', 'ASC']],
     });
-    res.json(tamanhos);
+
+    return res.json(tamanhos);
   } catch (error) {
-    console.error('Erro ao buscar tamanhos:', error);
-    res.status(500).json({ 
-      error: 'Erro ao buscar tamanhos',
-      message: error.message
-    });
+    console.error('❌ Erro ao buscar tamanhos:', error);
+    return res.status(500).json({ error: 'Erro ao buscar tamanhos', message: error.message });
   }
 }
 
-/* ---------------------- GET TAMANHOS POR CÓDIGO ---------------------- */
+/* ---------------------- TAMANHOS POR CÓDIGO ---------------------- */
 export async function buscarTamanhosPorCodigo(req, res) {
   try {
     const { codigo } = req.params;
-    
-    // Encontra o produto pelo código
-    const produto = await Produto.findOne({ 
-      where: { codigo } 
-    });
-    
-    if (!produto) {
-      return res.status(404).json({ error: 'Produto não encontrado' });
-    }
+    console.log(`🔍 Buscando tamanhos por código: ${codigo}`);
 
-    // Busca os tamanhos desse produto
-    const tamanhos = await ProdutoTamanho.findAll({ 
+    const produto = await Produto.findOne({ where: { codigo } });
+    if (!produto) return res.status(404).json({ error: 'Produto não encontrado' });
+
+    const tamanhos = await ProdutoTamanho.findAll({
       where: { produtoId: produto.id },
-      order: [['tamanho', 'ASC']]
+      order: [['tamanho', 'ASC']],
     });
 
-    res.json(tamanhos);
+    return res.json(tamanhos);
   } catch (error) {
-    console.error('Erro ao buscar tamanhos por código:', error);
-    res.status(500).json({ 
-      error: 'Erro ao buscar tamanhos por código',
-      message: error.message
-    });
+    console.error('❌ Erro ao buscar tamanhos por código:', error);
+    return res.status(500).json({ error: 'Erro ao buscar tamanhos por código', message: error.message });
   }
 }
 
-/* ---------------------- GET PRODUTO POR CÓDIGO ---------------------- */
+/* ---------------------- PRODUTO POR CÓDIGO ---------------------- */
 export async function buscarProdutoPorCodigo(req, res) {
   try {
     const { codigo } = req.params;
-    
-    // Busca o produto pelo código
-    const produto = await Produto.findOne({ 
-      where: { codigo } 
-    });
-    
-    if (!produto) {
-      return res.status(404).json({ error: 'Produto não encontrado' });
-    }
+    console.log(`🔍 Buscando produto por código: ${codigo}`);
 
-    // Busca os tamanhos desse produto
+    const produto = await Produto.findOne({ where: { codigo } });
+    if (!produto) return res.status(404).json({ error: 'Produto não encontrado' });
+
     const tamanhos = await ProdutoTamanho.findAll({
       where: { produtoId: produto.id },
-      order: [['tamanho', 'ASC']]
+      order: [['tamanho', 'ASC']],
     });
 
-    // Combina os dados
-    const produtoComTamanhos = {
-      id: produto.id,
-      codigo: produto.codigo,
-      descricao: produto.descricao,
-      valorMaoDeObraDuzia: produto.valorMaoDeObraDuzia,
-      valorMaoDeObraPeca: produto.valorMaoDeObraPeca,
-      precoVendaDuzia: produto.precoVendaDuzia,
-      precoVendaPeca: produto.precoVendaPeca,
-      tamanhos: tamanhos.map(t => ({
+    return res.json({
+      ...produto.toJSON(),
+      tamanhos: tamanhos.map((t) => ({
         id: t.id,
         produtoId: t.produtoId,
         tamanho: t.tamanho,
-        estoqueMinimo: t.estoqueMinimo
-      }))
-    };
-
-    res.json(produtoComTamanhos);
-  } catch (error) {
-    console.error('Erro ao buscar produto por código:', error);
-    res.status(500).json({ 
-      error: 'Erro ao buscar produto por código',
-      message: error.message
+        estoqueMinimo: t.estoqueMinimo,
+      })),
     });
+  } catch (error) {
+    console.error('❌ Erro ao buscar produto por código:', error);
+    return res.status(500).json({ error: 'Erro ao buscar produto por código', message: error.message });
   }
 }
 
@@ -254,23 +241,18 @@ export async function buscarProdutoPorCodigo(req, res) {
 export async function buscarCodigosPorIds(req, res) {
   try {
     const { ids } = req.body;
-    
-    if (!ids || !Array.isArray(ids)) {
+    if (!ids || !Array.isArray(ids))
       return res.status(400).json({ error: 'IDs devem ser um array' });
-    }
 
     const produtos = await Produto.findAll({
       where: { id: ids },
       attributes: ['id', 'codigo'],
-      order: [['id', 'ASC']]
+      order: [['id', 'ASC']],
     });
 
-    res.json(produtos);
+    return res.json(produtos);
   } catch (error) {
-    console.error('Erro ao buscar códigos por IDs:', error);
-    res.status(500).json({ 
-      error: 'Erro ao buscar códigos por IDs',
-      message: error.message
-    });
+    console.error('❌ Erro ao buscar códigos por IDs:', error);
+    return res.status(500).json({ error: 'Erro ao buscar códigos por IDs', message: error.message });
   }
 }

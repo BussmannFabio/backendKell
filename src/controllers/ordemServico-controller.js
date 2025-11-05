@@ -156,7 +156,14 @@ export const criarOrdem = async (req, res) => {
     await transaction.commit();
     console.log('[CRIA-OS][SUCESSO] OS', ordem.id, 'criada');
 
-    const ordemCompleta = await OrdemServico.findByPk(ordem.id, { include: ['itens', 'confeccao'] });
+    // CORREÇÃO: Buscar ordem com includes corretos
+    const ordemCompleta = await OrdemServico.findByPk(ordem.id, {
+      include: [
+        { association: 'itens' },
+        { association: 'confeccao' }
+      ]
+    });
+    
     return res.status(201).json({ success: true, ordem: ordemCompleta, detalhesItens: resultados });
 
   } catch (error) {
@@ -190,7 +197,14 @@ export const retornarOrdem = async (req, res) => {
       return res.status(400).json({ success: false, error: 'pecasComDefeito inválido' });
     }
 
-    const ordemServico = await OrdemServico.findByPk(id, { include: ['itens', 'confeccao'], transaction });
+    // CORREÇÃO: Include corrigido
+    const ordemServico = await OrdemServico.findByPk(id, {
+      include: [
+        { association: 'itens' },
+        { association: 'confeccao' }
+      ],
+      transaction
+    });
 
     if (!ordemServico) {
       await transaction.rollback();
@@ -427,7 +441,14 @@ export const retornarOrdem = async (req, res) => {
     }
 
     await transaction.commit();
-    const ordemServicoAtualizada = await OrdemServico.findByPk(id, { include: ['itens', 'confeccao'] });
+    
+    // CORREÇÃO: Include corrigido
+    const ordemServicoAtualizada = await OrdemServico.findByPk(id, {
+      include: [
+        { association: 'itens' },
+        { association: 'confeccao' }
+      ]
+    });
 
     console.log('[RETORNO-ORDEM-SERVICO][FIM] Processamento concluído com sucesso');
     return res.json({ success: true, ordem: ordemServicoAtualizada, detalhesItens: resultadosProcessamento });
@@ -446,7 +467,15 @@ export const reabrirOrdem = async (req, res) => {
     const { id } = req.params;
     console.log('[REABRIR-OS][INICIO] id=', id);
 
-    const ordem = await OrdemServico.findByPk(id, { include: ['itens', 'confeccao'], transaction });
+    // CORREÇÃO: Include corrigido
+    const ordem = await OrdemServico.findByPk(id, {
+      include: [
+        { association: 'itens' },
+        { association: 'confeccao' }
+      ],
+      transaction
+    });
+    
     if (!ordem) {
       await transaction.rollback();
       return res.status(404).json({ success: false, error: 'OS não encontrada' });
@@ -519,7 +548,14 @@ export const reabrirOrdem = async (req, res) => {
 
     await transaction.commit();
 
-    const ordemAtualizada = await OrdemServico.findByPk(id, { include: ['itens', 'confeccao'] });
+    // CORREÇÃO: Include corrigido
+    const ordemAtualizada = await OrdemServico.findByPk(id, {
+      include: [
+        { association: 'itens' },
+        { association: 'confeccao' }
+      ]
+    });
+    
     console.log('[REABRIR-OS][SUCESSO] ordem reaberta id=', id);
 
     return res.json({ success: true, ordem: ordemAtualizada, detalhesItens: resultados });
@@ -534,7 +570,14 @@ export const reabrirOrdem = async (req, res) => {
 // ---------------------- LISTAR ORDENS ----------------------
 export const listarOrdens = async (req, res) => {
   try {
-    const ordens = await OrdemServico.findAll({ include: ['itens', 'confeccao'] });
+    // CORREÇÃO: Include corrigido
+    const ordens = await OrdemServico.findAll({
+      include: [
+        { association: 'itens' },
+        { association: 'confeccao' }
+      ]
+    });
+    
     return res.json({ success: true, ordens });
   } catch (error) {
     console.error('[LISTAR-OS][ERRO]', error);
@@ -545,7 +588,14 @@ export const listarOrdens = async (req, res) => {
 // ---------------------- BUSCAR ORDEM POR ID ----------------------
 export const buscarOrdemPorId = async (req, res) => {
   try {
-    const ordem = await OrdemServico.findByPk(req.params.id, { include: ['itens', 'confeccao'] });
+    // CORREÇÃO: Include corrigido
+    const ordem = await OrdemServico.findByPk(req.params.id, {
+      include: [
+        { association: 'itens' },
+        { association: 'confeccao' }
+      ]
+    });
+    
     if (!ordem) return res.status(404).json({ success: false, error: 'Ordem não encontrada' });
     return res.json({ success: true, ordem });
   } catch (error) {
@@ -559,7 +609,15 @@ export const deletarOrdem = async (req, res) => {
   const transaction = await sequelize.transaction();
   try {
     const { id } = req.params;
-    const ordem = await OrdemServico.findByPk(id, { include: ['itens'], transaction });
+    
+    // CORREÇÃO: Include corrigido
+    const ordem = await OrdemServico.findByPk(id, {
+      include: [
+        { association: 'itens' }
+      ],
+      transaction
+    });
+    
     if (!ordem) return res.status(404).json({ success: false, error: 'Ordem não encontrada' });
 
     for (const item of ordem.itens) {
@@ -627,7 +685,7 @@ export const updateEstoqueMaterial = async (req, res) => {
 export const getEstoqueProdutos = async (req, res) => {
   try {
     const produtos = await EstoqueProduto.findAll({
-      include: [{ model: ProdutoTamanho, as: 'produtoTamanhoPai', include: [{ model: Produto, as: 'produtoPai' }] }]
+      include: [{ model: ProdutoTamanho, as: 'produtoTamanho', include: [{ model: Produto, as: 'produto' }] }]
     });
     res.json({ success: true, produtos });
   } catch (erro) {
@@ -660,9 +718,9 @@ export const updateEstoqueProduto = async (req, res) => {
 export const verificarEstoque = async (req, res) => {
   try {
     const estoques = await EstoqueProduto.findAll({
-      include: [{ model: ProdutoTamanho, as: 'produtoTamanhoPai', include: [{ model: Produto, as: 'produtoPai' }] }],
+      include: [{ model: ProdutoTamanho, as: 'produtoTamanho', include: [{ model: Produto, as: 'produto' }] }],
       where: { [Op.or]: [{ quantidadeAberta: { [Op.gt]: 0 } }, { quantidadePronta: { [Op.gt]: 0 } }] },
-      order: [[{ model: ProdutoTamanho, as: 'produtoTamanhoPai' }, { model: Produto, as: 'produtoPai' }, 'id', 'ASC'], [{ model: ProdutoTamanho, as: 'produtoTamanhoPai' }, 'tamanho', 'ASC']]
+      order: [[{ model: ProdutoTamanho, as: 'produtoTamanho' }, { model: Produto, as: 'produto' }, 'id', 'ASC'], [{ model: ProdutoTamanho, as: 'produtoTamanho' }, 'tamanho', 'ASC']]
     });
 
     const resumo = {

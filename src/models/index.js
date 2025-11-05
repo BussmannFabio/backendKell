@@ -47,18 +47,21 @@ safe(CargaItem, 'belongsTo', Carga, { foreignKey: 'cargaId', as: 'carga' });
 safe(ProdutoTamanho, 'hasMany', CargaItem, { foreignKey: 'produtoTamanhoId', as: 'cargaItens' });
 safe(CargaItem, 'belongsTo', ProdutoTamanho, { foreignKey: 'produtoTamanhoId', as: 'produtoTamanho' });
 
-/* ORDEM */
-safe(Carga, 'hasMany', OrdemServico, { foreignKey: 'cargaId', as: 'ordensCarga' });
-safe(OrdemServico, 'belongsTo', Carga, { foreignKey: 'cargaId', as: 'carga' });
-
-safe(OrdemServico, 'hasMany', OrdemItem, { foreignKey: 'ordemServicoId', as: 'itens' });
-safe(OrdemItem, 'belongsTo', OrdemServico, { foreignKey: 'ordemServicoId', as: 'ordemServico' });
+/* ORDEM - CORREÇÃO PRINCIPAL AQUI */
+safe(OrdemServico, 'hasMany', OrdemItem, { foreignKey: 'ordemId', as: 'itens' }); // CORRIGIDO: ordemId
+safe(OrdemItem, 'belongsTo', OrdemServico, { foreignKey: 'ordemId', as: 'ordem' }); // CORRIGIDO: ordemId
 
 safe(ProdutoTamanho, 'hasMany', OrdemItem, { foreignKey: 'produtoTamanhoId', as: 'ordemItens' });
 safe(OrdemItem, 'belongsTo', ProdutoTamanho, { foreignKey: 'produtoTamanhoId', as: 'produtoTamanho' });
 
-safe(Confeccao, 'hasMany', OrdemServico, { foreignKey: 'confeccaoId', as: 'ordensConfeccao' });
+safe(Confeccao, 'hasMany', OrdemServico, { foreignKey: 'confeccaoId', as: 'ordens' });
 safe(OrdemServico, 'belongsTo', Confeccao, { foreignKey: 'confeccaoId', as: 'confeccao' });
+
+/* FINANCEIRO - CORREÇÃO */
+safe(OrdemServico, 'hasMany', Financeiro, { foreignKey: 'ordemId', as: 'financeiros' });
+safe(Financeiro, 'belongsTo', OrdemServico, { foreignKey: 'ordemId', as: 'ordem' });
+safe(Confeccao, 'hasMany', Financeiro, { foreignKey: 'confeccaoId', as: 'financeiros' });
+safe(Financeiro, 'belongsTo', Confeccao, { foreignKey: 'confeccaoId', as: 'confeccao' });
 
 /* VALES */
 safe(ValePedidoSp, 'hasMany', ValePedidoItemSp, { foreignKey: 'valePedidoSpId', as: 'itensValePedidoSp' });
@@ -101,18 +104,7 @@ safe(ValeMaterial, 'belongsToMany', Material, {
   as: 'materiaisVale'
 });
 
-/* FINANCEIRO */
-safe(Financeiro, 'belongsTo', OrdemServico, { foreignKey: 'ordemId', as: 'ordemFinanceiro' });
-safe(Financeiro, 'belongsTo', Confeccao, { foreignKey: 'confeccaoId', as: 'confeccaoFinanceiro' });
-
 console.log('=== ASSOCIAÇÕES FINALIZADAS ===');
-
-try {
-  console.log('Associação tamanhos existe:', !!(Produto && Produto.associations && Produto.associations.tamanhos));
-  console.log('Aliases em Produto:', Produto && Produto.associations ? Object.keys(Produto.associations) : []);
-} catch (err) {
-  console.error('Erro ao inspecionar associações do Produto:', err && err.message);
-}
 
 export {
   sequelize,

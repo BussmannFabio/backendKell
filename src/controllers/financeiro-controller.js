@@ -4,14 +4,11 @@ import { Op } from 'sequelize';
 
 /**
  * Listar registros financeiros
- * Suporta query params opcionais:
- *  - from (yyyy-mm-dd) inclusive
- *  - to   (yyyy-mm-dd) inclusive
+ * Query params opcionais:
+ *  - from (yyyy-mm-dd)
+ *  - to   (yyyy-mm-dd)
  *  - page (1-based)
  *  - pageSize
- *
- * Retorno:
- * { success:true, registros: [...], pagination: { page, pageSize, total } }
  */
 export const listarFinanceiro = async (req, res) => {
   try {
@@ -22,15 +19,12 @@ export const listarFinanceiro = async (req, res) => {
       const whereBetween = [];
       if (from) {
         const d = new Date(from);
-        // início do dia
         whereBetween[0] = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
       }
       if (to) {
         const d2 = new Date(to);
-        // fim do dia
         whereBetween[1] = new Date(d2.getFullYear(), d2.getMonth(), d2.getDate(), 23, 59, 59, 999);
       }
-      // se apenas um lado informado, ajusta adequadamente
       if (whereBetween.length === 2 && whereBetween[0] && whereBetween[1]) {
         where.dataLancamento = { [Op.between]: whereBetween };
       } else if (whereBetween[0]) {
@@ -40,16 +34,14 @@ export const listarFinanceiro = async (req, res) => {
       }
     }
 
-    // Configuração de paginação
     const limit = Number(pageSize) > 0 ? Number(pageSize) : null;
-    const offset = (Number(page) > 1 && limit) ? (Number(page) - 1) * limit : null;
+    const offset = limit && Number(page) > 1 ? (Number(page) - 1) * limit : null;
 
-    // usar findAndCountAll para facilitar paginação
     const findOpts = {
       where,
       include: [
-        { model: OrdemServico, as: 'ordemFinanceiro' },
-        { model: Confeccao, as: 'confeccaoFinanceiro', attributes: ['id', 'nome'] }
+        { model: OrdemServico, as: 'ordem' },
+        { model: Confeccao, as: 'confeccao', attributes: ['id', 'nome'] }
       ],
       order: [['dataLancamento', 'DESC']]
     };
@@ -64,12 +56,12 @@ export const listarFinanceiro = async (req, res) => {
         id: plain.id,
         ordemId: plain.ordemId,
         confeccaoId: plain.confeccaoId,
-        confeccaoNome: plain.confeccaoFinanceiro?.nome ?? null,
+        confeccaoNome: plain.confeccao?.nome ?? null,
         valorMaoDeObra: plain.valorMaoDeObra,
         diferenca: plain.diferenca,
         status: plain.status,
         dataLancamento: plain.dataLancamento,
-        ordemFinanceiro: plain.ordemFinanceiro
+        ordemFinanceiro: plain.ordem
       };
     });
 
@@ -138,7 +130,6 @@ export const relatorioGerar = async (req, res) => {
       return res.status(400).json({ success: false, error: 'Informe ordemIds: array de ids (não vazio).' });
     }
 
-    // map ordem -> confeccaoId
     const ordens = await OrdemServico.findAll({
       where: { id: { [Op.in]: ordemIds } },
       attributes: ['id', 'confeccaoId']
@@ -146,7 +137,6 @@ export const relatorioGerar = async (req, res) => {
     const ordemToConfeccao = {};
     ordens.forEach(o => { ordemToConfeccao[String(o.id)] = o.confeccaoId; });
 
-    // buscar itens
     const itens = await OrdemItem.findAll({
       where: { ordemId: { [Op.in]: ordemIds } },
       attributes: ['id', 'ordemId', 'produtoId', 'pecasReais']
@@ -156,7 +146,6 @@ export const relatorioGerar = async (req, res) => {
       return res.json({ success: true, report: [], totals: { totalPecasProduzidas: 0, totalDuzias: 0, totalValor: 0, totalOrdens: 0 } });
     }
 
-    // produtos envolvidos para recuperar valor por dúzia
     const produtoIds = Array.from(new Set(itens.map(i => i.produtoId).filter(Boolean)));
     const produtos = produtoIds.length > 0 ? await Produto.findAll({
       where: { id: { [Op.in]: produtoIds } },
@@ -165,7 +154,6 @@ export const relatorioGerar = async (req, res) => {
     const produtoMap = {};
     produtos.forEach(p => { produtoMap[String(p.id)] = { valorMaoDeObraDuzia: Number(p.valorMaoDeObraDuzia || 0) }; });
 
-    // agrupar por confeccaoId
     const groups = {};
     for (const it of itens) {
       const ordemId = it.ordemId;
@@ -195,7 +183,6 @@ export const relatorioGerar = async (req, res) => {
       groups[key].ordensSet.add(String(ordemId));
     }
 
-    // buscar nomes das confecções
     const confeccaoIds = Object.values(groups).map(g => g.confeccaoId).filter(id => id != null);
     let confeccoes = [];
     if (confeccaoIds.length > 0) {
@@ -204,7 +191,6 @@ export const relatorioGerar = async (req, res) => {
     const confeccaoMap = {};
     confeccoes.forEach(c => { confeccaoMap[String(c.id)] = c.nome; });
 
-    // montar report e totals
     const report = Object.values(groups).map(g => ({
       confeccaoId: g.confeccaoId,
       confeccaoNome: g.confeccaoId ? (confeccaoMap[String(g.confeccaoId)] ?? `#${g.confeccaoId}`) : 'Sem confecção',
@@ -214,10 +200,8 @@ export const relatorioGerar = async (req, res) => {
       ordensCount: g.ordensSet.size
     }));
 
-    // ordenar por nome da confecção
     report.sort((a, b) => (a.confeccaoNome || '').localeCompare(b.confeccaoNome || ''));
 
-    // totals gerais
     const totals = report.reduce((acc, cur) => {
       acc.totalPecasProduzidas += Number(cur.totalPecasProduzidas || 0);
       acc.totalDuzias += Number(cur.totalDuzias || 0);
@@ -226,7 +210,6 @@ export const relatorioGerar = async (req, res) => {
       return acc;
     }, { totalPecasProduzidas: 0, totalDuzias: 0, totalValor: 0, totalOrdens: 0 });
 
-    // ajustar arredondamento do totalDuzias/totalValor
     totals.totalDuzias = Math.round((totals.totalDuzias + Number.EPSILON) * 100) / 100;
     totals.totalValor = Math.round((totals.totalValor + Number.EPSILON) * 100) / 100;
 
