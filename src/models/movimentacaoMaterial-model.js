@@ -1,18 +1,17 @@
-// src/models/movimentacaoMaterial-model.js
 import { DataTypes } from 'sequelize';
 import sequelize from '../config/database.js';
 
 const MovimentacaoMaterial = sequelize.define('MovimentacaoMaterial', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   materialId: { type: DataTypes.INTEGER, allowNull: false },
-  tipo: { type: DataTypes.ENUM('entrada','saida'), allowNull: false },
-  quantidade: { type: DataTypes.DECIMAL(10,2), allowNull: false },
-  valorUnitario: { type: DataTypes.DECIMAL(10,2) }, // opcional, útil p/ financeiro
-  confeccaoId: { type: DataTypes.INTEGER }, // opcional
-  usuarioId: { type: DataTypes.INTEGER }, // opcional — quem realizou
-  referenciaFinanceiraId: { type: DataTypes.INTEGER }, // opcional FK p/ financeiro
-  emAberto: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true }, // status financeiro
-  observacao: { type: DataTypes.STRING(255) }
+  tipo: { type: DataTypes.ENUM('entrada', 'saida'), allowNull: false },
+  quantidade: { type: DataTypes.INTEGER, allowNull: false },
+  valorUnitario: { type: DataTypes.DECIMAL(10, 2), allowNull: true },
+  confeccaoId: { type: DataTypes.INTEGER, allowNull: true },
+  usuarioId: { type: DataTypes.INTEGER, allowNull: true },
+  referenciaFinanceiraId: { type: DataTypes.INTEGER, allowNull: true },
+  emAberto: { type: DataTypes.BOOLEAN, defaultValue: true },
+  observacao: { type: DataTypes.STRING, allowNull: true }
 }, {
   tableName: 'movimentacoes_materiais',
   timestamps: true

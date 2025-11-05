@@ -1,5 +1,5 @@
 import express from 'express';
-import Confeccao from '../models/confeccao-model.js';
+import {Confeccao} from '../models/index.js';
 
 const router = express.Router();
 

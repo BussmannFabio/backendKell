@@ -1,8 +1,9 @@
-// src/models/material-model.js
-import { DataTypes } from 'sequelize';
+import { Model, DataTypes } from 'sequelize';
 import sequelize from '../config/database.js';
 
-const Material = sequelize.define('Material', {
+export default class Material extends Model {}
+
+Material.init({
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   nome: { type: DataTypes.STRING(100), allowNull: false, unique: true },
   unidadeMedida: { type: DataTypes.STRING(20), allowNull: false },
@@ -13,8 +14,8 @@ const Material = sequelize.define('Material', {
   atualizadoPor: { type: DataTypes.STRING(100), allowNull: true },
   deletadoPor: { type: DataTypes.STRING(100), allowNull: true }
 }, {
+  sequelize,
+  modelName: 'Material',
   tableName: 'materiais',
   timestamps: true
 });
-
-export default Material;

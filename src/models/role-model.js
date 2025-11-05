@@ -1,19 +1,15 @@
-import { DataTypes } from "sequelize";
-import sequelize from "../config/database.js";
+// src/models/role-model.js
+import { Model, DataTypes } from 'sequelize';
+import sequelize from '../config/database.js';
 
-const Role = sequelize.define("Role", {
-  nome: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
-  // Remova ou comente descricao se não existe na tabela
-  // descricao: {
-  //   type: DataTypes.STRING,
-  //   allowNull: true
-  // }
+export default class Role extends Model {}
+
+Role.init({
+  nome: { type: DataTypes.STRING(100), allowNull: false, unique: true },
 }, {
-  tableName: "roles",
-  timestamps: false
+  sequelize,
+  modelName: 'Role',
+  tableName: 'roles',
+  timestamps: false,
+  underscored: false
 });
-
-export default Role;

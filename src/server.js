@@ -1,68 +1,76 @@
 // server.js
+import './models/index.js';
 import express from 'express';
 import cors from 'cors';
+import os from 'os';
 import sequelize from './config/database.js';
-
-import cargaRoutes from './routes/carga-routes.js';
-import confeccaoRoutes from './routes/confeccao-routes.js';
-import produtoRoutes from './routes/produto-routes.js';
-import ordemServicoRoutes from './routes/ordemServico-routes.js';
-import materialroutes from './routes/material-routes.js';
-import financeiroRoutes from './routes/financeiro-routes.js';
-import estoqueRoutes from './routes/estoque-routes.js';
-import movimentacaoRoutes from './routes/movimentacao-material-routes.js';
 
 import authRoutes from './routes/auth-routes.js';
 import usersRoutes from './routes/user-routes.js';
+import confeccaoRoutes from './routes/confeccao-routes.js';
+import produtoRoutes from './routes/produto-routes.js';
+import ordemServicoRoutes from './routes/ordemServico-routes.js';
+import materialRoutes from './routes/material-routes.js';
+import financeiroRoutes from './routes/financeiro-routes.js';
+import estoqueRoutes from './routes/estoque-routes.js';
+import movimentacaoRoutes from './routes/movimentacao-material-routes.js';
+import cargaRoutes from './routes/carga-routes.js';
+import valePedidoSpRoutes from './routes/valePedidoSp-routes.js';
 
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-// logo após const app = express();
 app.use((req, res, next) => {
-  console.log(`[REQ] ${new Date().toISOString()} - ${req.method} ${req.originalUrl}`);
+  const time = new Date().toISOString();
+  console.log(`[REQ] ${time} - ${req.method} ${req.originalUrl}`);
   next();
 });
 
+const localIps = Object.values(os.networkInterfaces())
+  .flat()
+  .filter(iface => iface?.family === 'IPv4' && !iface.internal)
+  .map(iface => `http://${iface.address}:4200`);
 
-// === CORS ===
 app.use(cors({
   origin: [
     'http://localhost:4200',
-    'http://192.168.10.19:4200', // frontend da tua máquina
-    /\.192\.168\.10\.\d{1,3}$/,
-    'https://front-end-kell.vercel.app'
+    ...localIps,
+    /\.192\.168\.10\.\d{1,3}$/
   ],
-  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   credentials: true
 }));
 
 app.use(express.json());
 
-// Rotas públicas e protegidas
-app.use('/auth', authRoutes);    // /auth/register, /auth/login
-app.use('/users', usersRoutes);  // rotas admin (GET /users, POST /users)
-
-// Rotas da aplicação
+app.use('/auth', authRoutes);
+app.use('/users', usersRoutes);
 app.use('/confeccoes', confeccaoRoutes);
 app.use('/produtos', produtoRoutes);
 app.use('/ordens', ordemServicoRoutes);
-app.use('/materiais', materialroutes);
+app.use('/materiais', materialRoutes);
 app.use('/financeiro', financeiroRoutes);
 app.use('/estoque', estoqueRoutes);
 app.use('/movimentar-estoque', movimentacaoRoutes);
 app.use('/cargas', cargaRoutes);
-// healthcheck
-app.get('/', (req, res) => res.send('API rodando'));
+app.use('/vales-sp', valePedidoSpRoutes);
 
-const PORT = process.env.PORT || 3000;
+app.get('/', (req, res) => res.send('API rodando com sucesso'));
 
 (async () => {
   try {
     await sequelize.authenticate();
-    console.log('Conexão com banco OK');
-    await sequelize.sync({ alter: true }); // sem force em produção
+    console.log('Conexão com banco estabelecida.');
 
-    app.listen(PORT, '0.0.0.0', () => console.log(`Servidor rodando na porta ${PORT}`));
+    await sequelize.sync({ alter: true });
+
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Servidor rodando na porta ${PORT}`);
+      console.log(`Acesse: http://localhost:${PORT}`);
+      if (localIps.length) {
+        console.log(`IPs locais: ${localIps.join(', ')}`);
+      }
+    });
   } catch (error) {
     console.error('Erro ao iniciar servidor:', error);
   }

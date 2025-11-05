@@ -1,4 +1,3 @@
-// src/controllers/estoque-controller.js
 import sequelize from '../config/database.js';
 import { EstoqueMaterial, EstoqueProduto, ProdutoTamanho, Produto, Material } from '../models/index.js';
 
@@ -43,8 +42,8 @@ export const getEstoqueProdutos = async (req, res) => {
       include: [
         {
           model: ProdutoTamanho,
-          as: 'produtoTamanhoPai',
-          include: [{ model: Produto, as: 'produtoPai' }]
+          as: 'produtoTamanho',
+          include: [{ model: Produto, as: 'produto' }]
         }
       ]
     });
@@ -63,8 +62,8 @@ export const updateEstoqueProduto = async (req, res) => {
     const { quantidadeAberta, quantidadePronta } = req.body;
 
     if (
-      quantidadeAberta !== undefined && quantidadeAberta < 0 ||
-      quantidadePronta !== undefined && quantidadePronta < 0
+      (quantidadeAberta !== undefined && quantidadeAberta < 0) ||
+      (quantidadePronta !== undefined && quantidadePronta < 0)
     ) {
       return res.status(400).json({ error: 'Quantidade não pode ser negativa' });
     }
@@ -84,15 +83,14 @@ export const updateEstoqueProduto = async (req, res) => {
   }
 };
 
-// ---------- FUNÇÃO AUXILIAR PARA VERIFICAR ESTOQUE ----------
 export const verificarEstoque = async (req, res) => {
   try {
     const estoques = await EstoqueProduto.findAll({
       include: [
         {
           model: ProdutoTamanho,
-          as: 'produtoTamanhoPai',
-          include: [{ model: Produto, as: 'produtoPai' }]
+          as: 'produtoTamanho',
+          include: [{ model: Produto, as: 'produto' }]
         }
       ],
       where: {
@@ -102,8 +100,8 @@ export const verificarEstoque = async (req, res) => {
         ]
       },
       order: [
-        [{ model: ProdutoTamanho, as: 'produtoTamanhoPai' }, { model: Produto, as: 'produtoPai' }, 'id', 'ASC'],
-        [{ model: ProdutoTamanho, as: 'produtoTamanhoPai' }, 'tamanho', 'ASC']
+        [{ model: ProdutoTamanho, as: 'produtoTamanho' }, { model: Produto, as: 'produto' }, 'id', 'ASC'],
+        [{ model: ProdutoTamanho, as: 'produtoTamanho' }, 'tamanho', 'ASC']
       ]
     });
 

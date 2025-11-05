@@ -1,129 +1,137 @@
 // src/models/index.js
 import sequelize from '../config/database.js';
 
-// Models principais
-import OrdemServico from './ordemServico-model.js';
-import OrdemItem from './ordemItem-model.js';
 import Produto from './produto-model.js';
 import ProdutoTamanho from './produtoTamanho-model.js';
 import EstoqueProduto from './estoqueProduto-model.js';
+import EstoqueSp from './estoqueSp-model.js';
+import Carga from './carga-model.js';
+import CargaItem from './cargaItem-model.js';
+import OrdemServico from './ordemServico-model.js';
+import OrdemItem from './ordemItem-model.js';
+import Confeccao from './confeccao-model.js';
+import Financeiro from './financeiro-model.js';
+import ValePedidoSp from './valePedidoSp-model.js';
+import ValePedidoItemSp from './valePedidoItemSp-model.js';
+import MovimentacaoMaterial from './movimentacaoMaterial-model.js';
+import Role from './role-model.js';
+import User from './user-model.js';
+import ValeMaterial from './valeMaterial-model.js';
 import Material from './material-model.js';
 import EstoqueMaterial from './estoqueMaterial-model.js';
-import Financeiro from './financeiro-model.js';
-import Confeccao from './confeccao-model.js';
-import { User } from './user-model.js';
-import Role from './role-model.js';
-import { Audit } from './audit-model.js';
-import ValeMaterial from './vale-material-model.js';
-import MovimentacaoMaterial from './movimentacaoMaterial-model.js';
-import { Carga, CargaItem } from './carga-model.js';
 
-// ----------------------
-// OrdemServico x OrdemItem
-// ----------------------
-OrdemServico.hasMany(OrdemItem, { foreignKey: 'ordemId', as: 'itens' });
-OrdemItem.belongsTo(OrdemServico, { foreignKey: 'ordemId', as: 'ordem' });
+console.log('=== INICIANDO ASSOCIAÇÕES ===');
 
-// ----------------------
-// Produto x ProdutoTamanho
-// ----------------------
-Produto.hasMany(ProdutoTamanho, { foreignKey: 'produtoId', as: 'tamanhosProduto' });
-ProdutoTamanho.belongsTo(Produto, { foreignKey: 'produtoId', as: 'produtoPai' });
+function safe(source, fn, target, options = {}) {
+  const as = options.as;
+  if (as && source.associations && source.associations[as]) {
+    return;
+  }
+  source[fn](target, options);
+}
 
-// ----------------------
-// ProdutoTamanho x EstoqueProduto
-// ----------------------
-ProdutoTamanho.hasOne(EstoqueProduto, { foreignKey: 'produtoTamanhoId', as: 'estoqueProduto' });
-EstoqueProduto.belongsTo(ProdutoTamanho, { foreignKey: 'produtoTamanhoId', as: 'produtoTamanhoPai' });
+/* PRODUTOS */
+safe(Produto, 'hasMany', ProdutoTamanho, { foreignKey: 'produtoId', as: 'tamanhos' });
+safe(ProdutoTamanho, 'belongsTo', Produto, { foreignKey: 'produtoId', as: 'produto' });
 
-// ----------------------
-// Material x EstoqueMaterial
-// ----------------------
-Material.hasOne(EstoqueMaterial, { foreignKey: 'materialId', as: 'estoque' });
-EstoqueMaterial.belongsTo(Material, { foreignKey: 'materialId', as: 'materialPai' });
+safe(ProdutoTamanho, 'hasOne', EstoqueProduto, { foreignKey: 'produtoTamanhoId', as: 'estoqueProduto' });
+safe(EstoqueProduto, 'belongsTo', ProdutoTamanho, { foreignKey: 'produtoTamanhoId', as: 'produtoTamanho' });
 
-// ----------------------
-// ValeMaterial x User
-// ----------------------
-ValeMaterial.belongsTo(User, { foreignKey: 'usuarioId', as: 'usuario' });
-User.hasMany(ValeMaterial, { foreignKey: 'usuarioId', as: 'valesCriados' });
+safe(ProdutoTamanho, 'hasMany', EstoqueSp, { foreignKey: 'produtoTamanhoId', as: 'estoquesSp' });
+safe(EstoqueSp, 'belongsTo', ProdutoTamanho, { foreignKey: 'produtoTamanhoId', as: 'produtoTamanho' });
 
-// ----------------------
-// MovimentacaoMaterial x Material / Confeccao / User / ValeMaterial
-// ----------------------
-MovimentacaoMaterial.belongsTo(Material, { foreignKey: 'materialId', as: 'materialPai' });
-Material.hasMany(MovimentacaoMaterial, { foreignKey: 'materialId', as: 'movimentacoes' });
+/* CARGAS */
+safe(Carga, 'hasMany', CargaItem, { foreignKey: 'cargaId', as: 'itensCarga' });
+safe(CargaItem, 'belongsTo', Carga, { foreignKey: 'cargaId', as: 'carga' });
 
-MovimentacaoMaterial.belongsTo(Confeccao, { foreignKey: 'confeccaoId', as: 'confeccao' });
-Confeccao.hasMany(MovimentacaoMaterial, { foreignKey: 'confeccaoId', as: 'movimentacoes' });
+safe(ProdutoTamanho, 'hasMany', CargaItem, { foreignKey: 'produtoTamanhoId', as: 'cargaItens' });
+safe(CargaItem, 'belongsTo', ProdutoTamanho, { foreignKey: 'produtoTamanhoId', as: 'produtoTamanho' });
 
-MovimentacaoMaterial.belongsTo(User, { foreignKey: 'usuarioId', as: 'usuario' });
-User.hasMany(MovimentacaoMaterial, { foreignKey: 'usuarioId', as: 'movimentacoesUsuario' });
+/* ORDEM */
+safe(Carga, 'hasMany', OrdemServico, { foreignKey: 'cargaId', as: 'ordensCarga' });
+safe(OrdemServico, 'belongsTo', Carga, { foreignKey: 'cargaId', as: 'carga' });
 
-MovimentacaoMaterial.belongsTo(ValeMaterial, { foreignKey: 'valeMaterialId', as: 'vale' });
-ValeMaterial.hasMany(MovimentacaoMaterial, { foreignKey: 'valeMaterialId', as: 'movimentacoes' });
+safe(OrdemServico, 'hasMany', OrdemItem, { foreignKey: 'ordemServicoId', as: 'itens' });
+safe(OrdemItem, 'belongsTo', OrdemServico, { foreignKey: 'ordemServicoId', as: 'ordemServico' });
 
-// ----------------------
-// OrdemServico x Confeccao
-// ----------------------
-OrdemServico.belongsTo(Confeccao, { foreignKey: 'confeccaoId', as: 'confeccao' });
-Confeccao.hasMany(OrdemServico, { foreignKey: 'confeccaoId', as: 'ordens' });
+safe(ProdutoTamanho, 'hasMany', OrdemItem, { foreignKey: 'produtoTamanhoId', as: 'ordemItens' });
+safe(OrdemItem, 'belongsTo', ProdutoTamanho, { foreignKey: 'produtoTamanhoId', as: 'produtoTamanho' });
 
-// ----------------------
-// Financeiro x OrdemServico / Confeccao
-// ----------------------
-Financeiro.belongsTo(OrdemServico, { foreignKey: 'ordemId', as: 'ordemFinanceiro' });
-Financeiro.belongsTo(Confeccao, { foreignKey: 'confeccaoId', as: 'confeccaoFinanceiro' });
+safe(Confeccao, 'hasMany', OrdemServico, { foreignKey: 'confeccaoId', as: 'ordensConfeccao' });
+safe(OrdemServico, 'belongsTo', Confeccao, { foreignKey: 'confeccaoId', as: 'confeccao' });
 
-// ----------------------
-// User x Role
-// ----------------------
-User.belongsTo(Role, { foreignKey: 'roleId', as: 'role' });
-Role.hasMany(User, { foreignKey: 'roleId', as: 'usuarios' });
+/* VALES */
+safe(ValePedidoSp, 'hasMany', ValePedidoItemSp, { foreignKey: 'valePedidoSpId', as: 'itensValePedidoSp' });
+safe(ValePedidoItemSp, 'belongsTo', ValePedidoSp, { foreignKey: 'valePedidoSpId', as: 'valePedidoSp' });
 
-// ----------------------
-// Audit x User
-// ----------------------
-Audit.belongsTo(User, { foreignKey: 'usuarioId', as: 'usuario' });
-User.hasMany(Audit, { foreignKey: 'usuarioId', as: 'auditorias' });
+safe(ProdutoTamanho, 'hasMany', ValePedidoItemSp, { foreignKey: 'produtoTamanhoId', as: 'valesItensSp' });
+safe(ValePedidoItemSp, 'belongsTo', ProdutoTamanho, { foreignKey: 'produtoTamanhoId', as: 'produtoTamanho' });
 
-// ----------------------
-// Material x ValeMaterial (opcional via tabela de itens)
-// ----------------------
-Material.belongsToMany(ValeMaterial, { through: 'vale_material_itens', foreignKey: 'materialId', as: 'vales' });
-ValeMaterial.belongsToMany(Material, { through: 'vale_material_itens', foreignKey: 'valeId', as: 'materiais' });
+/* USERS / ROLES */
+safe(User, 'belongsTo', Role, { foreignKey: 'roleId', as: 'role' });
+safe(Role, 'hasMany', User, { foreignKey: 'roleId', as: 'usuarios' });
 
-// ----------------------
-// Carga x CargaItem
-// ----------------------
-Carga.hasMany(CargaItem, { foreignKey: 'cargaId', as: 'itens' });
-CargaItem.belongsTo(Carga, { foreignKey: 'cargaId', as: 'carga' });
+safe(User, 'hasMany', ValeMaterial, { foreignKey: 'usuarioId', as: 'valesMaterial' });
+safe(ValeMaterial, 'belongsTo', User, { foreignKey: 'usuarioId', as: 'usuario' });
 
-// ----------------------
-// CargaItem x ProdutoTamanho
-// ----------------------
-CargaItem.belongsTo(ProdutoTamanho, { foreignKey: 'produtoTamanhoId', as: 'produtoTamanho' });
-ProdutoTamanho.hasMany(CargaItem, { foreignKey: 'produtoTamanhoId', as: 'cargaItens' });
+/* MATERIAIS */
+safe(Material, 'hasOne', EstoqueMaterial, { foreignKey: 'materialId', as: 'estoqueMaterial' });
+safe(EstoqueMaterial, 'belongsTo', Material, { foreignKey: 'materialId', as: 'materialPai' });
 
-// ----------------------
-// Exportações
-// ----------------------
+safe(Material, 'hasMany', MovimentacaoMaterial, { foreignKey: 'materialId', as: 'movimentacoesMaterial' });
+safe(MovimentacaoMaterial, 'belongsTo', Material, { foreignKey: 'materialId', as: 'material' });
+
+safe(Confeccao, 'hasMany', MovimentacaoMaterial, { foreignKey: 'confeccaoId', as: 'movimentacoesConfeccao' });
+safe(MovimentacaoMaterial, 'belongsTo', Confeccao, { foreignKey: 'confeccaoId', as: 'confeccao' });
+
+safe(User, 'hasMany', MovimentacaoMaterial, { foreignKey: 'usuarioId', as: 'movimentacoesUsuario' });
+safe(MovimentacaoMaterial, 'belongsTo', User, { foreignKey: 'usuarioId', as: 'usuario' });
+
+/* VALE MATERIAL (M:N) */
+safe(Material, 'belongsToMany', ValeMaterial, {
+  through: 'vale_material_itens',
+  foreignKey: 'materialId',
+  otherKey: 'valeMaterialId',
+  as: 'valesAssociados'
+});
+safe(ValeMaterial, 'belongsToMany', Material, {
+  through: 'vale_material_itens',
+  foreignKey: 'valeMaterialId',
+  otherKey: 'materialId',
+  as: 'materiaisVale'
+});
+
+/* FINANCEIRO */
+safe(Financeiro, 'belongsTo', OrdemServico, { foreignKey: 'ordemId', as: 'ordemFinanceiro' });
+safe(Financeiro, 'belongsTo', Confeccao, { foreignKey: 'confeccaoId', as: 'confeccaoFinanceiro' });
+
+console.log('=== ASSOCIAÇÕES FINALIZADAS ===');
+
+try {
+  console.log('Associação tamanhos existe:', !!(Produto && Produto.associations && Produto.associations.tamanhos));
+  console.log('Aliases em Produto:', Produto && Produto.associations ? Object.keys(Produto.associations) : []);
+} catch (err) {
+  console.error('Erro ao inspecionar associações do Produto:', err && err.message);
+}
+
 export {
   sequelize,
-  OrdemServico,
-  OrdemItem,
   Produto,
   ProdutoTamanho,
   EstoqueProduto,
-  Material,
-  EstoqueMaterial,
-  Financeiro,
-  Confeccao,
-  User,
-  Role,
-  Audit,
-  ValeMaterial,
-  MovimentacaoMaterial,
+  EstoqueSp,
   Carga,
-  CargaItem
+  CargaItem,
+  OrdemServico,
+  OrdemItem,
+  Confeccao,
+  Financeiro,
+  ValePedidoSp,
+  ValePedidoItemSp,
+  MovimentacaoMaterial,
+  Role,
+  User,
+  ValeMaterial,
+  Material,
+  EstoqueMaterial
 };

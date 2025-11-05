@@ -1,8 +1,9 @@
-// src/models/ordemItem-model.js
-import { DataTypes } from 'sequelize';
+import { Model, DataTypes } from 'sequelize';
 import sequelize from '../config/database.js';
 
-const OrdemItem = sequelize.define('OrdemItem', {
+export default class OrdemItem extends Model {}
+
+OrdemItem.init({
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   ordemId: { type: DataTypes.INTEGER, allowNull: false },
   produtoId: { type: DataTypes.INTEGER, allowNull: false },
@@ -11,10 +12,10 @@ const OrdemItem = sequelize.define('OrdemItem', {
   pecasPorVolume: { type: DataTypes.INTEGER, allowNull: false },
   pecasEsperadas: { type: DataTypes.INTEGER, allowNull: false },
   pecasReais: { type: DataTypes.INTEGER, allowNull: true },
-  corte: { type: DataTypes.STRING(20), allowNull: false } // NOVO CAMPO
+  corte: { type: DataTypes.STRING(20), allowNull: false }
 }, {
+  sequelize,
+  modelName: 'OrdemItem',
   tableName: 'ordem_itens',
   timestamps: false
 });
-
-export default OrdemItem;

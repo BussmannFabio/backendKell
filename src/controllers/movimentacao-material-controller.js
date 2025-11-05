@@ -1,9 +1,5 @@
-// src/controllers/movimentacao-material-controller.js
 import { EstoqueMaterial, Material, MovimentacaoMaterial, Confeccao, User, sequelize } from '../models/index.js';
 
-/**
- * Criar movimentação e atualizar estoque
- */
 export const movimentarEstoqueMaterial = async (req, res) => {
   const t = await sequelize.transaction();
   try {
@@ -11,12 +7,11 @@ export const movimentarEstoqueMaterial = async (req, res) => {
     const quantidade = Number(req.body.quantidade);
     const tipo = req.body.tipo;
     const confeccaoId = req.body.confeccaoId ?? null;
-    const usuarioId = req.body.usuarioId ?? null; // se estiver autenticado, use req.user.id
+    const usuarioId = req.body.usuarioId ?? null;
     const valorUnitario = req.body.valorUnitario ?? null;
     const observacao = req.body.observacao ?? null;
     const emAberto = req.body.emAberto !== undefined ? !!req.body.emAberto : true;
 
-    // validações
     if (!materialId || Number.isNaN(materialId)) {
       await t.rollback();
       return res.status(400).json({ error: 'materialId inválido' });
@@ -30,10 +25,8 @@ export const movimentarEstoqueMaterial = async (req, res) => {
       return res.status(400).json({ error: 'tipo inválido. Use "entrada" ou "saida".' });
     }
 
-    // busca estoque existente
     let estoque = await EstoqueMaterial.findOne({ where: { materialId }, transaction: t });
 
-    // cria estoque se não existir
     if (!estoque) {
       const material = await Material.findByPk(materialId, { transaction: t });
       if (!material) {
@@ -43,10 +36,9 @@ export const movimentarEstoqueMaterial = async (req, res) => {
       estoque = await EstoqueMaterial.create({ materialId, quantidade: Number(material.quantidade ?? 0) }, { transaction: t });
     }
 
-    // aplica movimentação
     if (tipo === 'entrada') {
       estoque.quantidade += quantidade;
-    } else { // saída
+    } else {
       if (estoque.quantidade < quantidade) {
         await t.rollback();
         return res.status(400).json({ error: 'Quantidade insuficiente no estoque' });
@@ -57,7 +49,6 @@ export const movimentarEstoqueMaterial = async (req, res) => {
     await estoque.save({ transaction: t });
     await Material.update({ quantidade: estoque.quantidade }, { where: { id: materialId }, transaction: t });
 
-    // cria registro de movimentação
     const mov = await MovimentacaoMaterial.create({
       materialId,
       tipo,
@@ -72,10 +63,9 @@ export const movimentarEstoqueMaterial = async (req, res) => {
 
     await t.commit();
 
-    // retorna movimentação completa
     const movIncl = await MovimentacaoMaterial.findByPk(mov.id, {
       include: [
-        { model: Material, as: 'materialPai' },
+        { model: Material, as: 'material' },
         ...(confeccaoId ? [{ model: Confeccao, as: 'confeccao' }] : []),
         ...(usuarioId ? [{ model: User, as: 'usuario' }] : [])
       ]
@@ -98,9 +88,6 @@ export const movimentarEstoqueMaterial = async (req, res) => {
   }
 };
 
-/**
- * Atualizar campos de uma movimentação
- */
 export const atualizarMovimentacao = async (req, res) => {
   try {
     const { id } = req.params;
@@ -112,7 +99,7 @@ export const atualizarMovimentacao = async (req, res) => {
     await movimentacao.update(campos);
     const movimentacaoAtualizada = await MovimentacaoMaterial.findByPk(id, {
       include: [
-        { model: Material, as: 'materialPai' },
+        { model: Material, as: 'material' },
         { model: Confeccao, as: 'confeccao' },
         { model: User, as: 'usuario' }
       ]
@@ -125,9 +112,6 @@ export const atualizarMovimentacao = async (req, res) => {
   }
 };
 
-/**
- * Deletar uma movimentação
- */
 export const deletarMovimentacao = async (req, res) => {
   try {
     const { id } = req.params;
@@ -143,14 +127,11 @@ export const deletarMovimentacao = async (req, res) => {
   }
 };
 
-/**
- * Listar todas movimentações
- */
 export const listarMovimentacoes = async (req, res) => {
   try {
     const movimentacoes = await MovimentacaoMaterial.findAll({
       include: [
-        { model: Material, as: 'materialPai' },
+        { model: Material, as: 'material' },
         { model: Confeccao, as: 'confeccao' },
         { model: User, as: 'usuario' }
       ],

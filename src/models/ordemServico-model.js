@@ -1,18 +1,17 @@
-import { DataTypes } from 'sequelize';
+import { Model, DataTypes } from 'sequelize';
 import sequelize from '../config/database.js';
 
-const OrdemServico = sequelize.define('OrdemServico', {
-  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  dataInicio: { type: DataTypes.DATE, allowNull: true },
-  dataRetorno: { type: DataTypes.DATE, allowNull: true },
-  status: { 
-    type: DataTypes.ENUM('CRIADA', 'EM_PRODUCAO', 'RETORNADA'), 
-    defaultValue: 'CRIADA' 
-  },
-  confeccaoId: { type: DataTypes.INTEGER, allowNull: false }
-}, { 
-  tableName: 'ordens_servico', 
-  timestamps: false 
-});
+export default class OrdemServico extends Model {}
 
-export default OrdemServico;
+OrdemServico.init({
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  dataInicio: { type: DataTypes.DATEONLY, allowNull: true },
+  dataRetorno: { type: DataTypes.DATEONLY, allowNull: true },
+  status: { type: DataTypes.ENUM('CRIADA', 'EM_PRODUCAO', 'RETORNADA'), defaultValue: 'CRIADA' },
+  confeccaoId: { type: DataTypes.INTEGER, allowNull: false }
+}, {
+  sequelize,
+  modelName: 'OrdemServico',
+  tableName: 'ordens_servico',
+  timestamps: false
+});

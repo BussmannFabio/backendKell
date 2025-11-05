@@ -1,5 +1,5 @@
 // src/controllers/material-controller.js
-import Material from '../models/material-model.js';
+import {Material} from '../models/index.js';
 import { EstoqueMaterial } from '../models/index.js'; // importa o model de estoque
 import { sequelize } from '../models/index.js';
 
