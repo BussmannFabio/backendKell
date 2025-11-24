@@ -1,68 +1,36 @@
-// src/sync.js
-import { QueryTypes } from 'sequelize';
-import { sequelize } from './src/models/index.js'; // ajusta se o path do seu index for diferente
+// sync.js
 
-async function getColumnDataType(schema, table, column) {
-  const sql = `
-    SELECT data_type
-    FROM information_schema.columns
-    WHERE table_schema = :schema
-      AND table_name = :table
-      AND column_name = :column
-    LIMIT 1
-  `;
-  const rows = await sequelize.query(sql, {
-    type: QueryTypes.SELECT,
-    replacements: { schema, table, column }
-  });
-  return rows && rows.length ? rows[0].data_type : null;
-}
+import { sequelize } from "./src/models/index.js"; // Importa a instância do Sequelize
+// Não é necessário importar os models individualmente,
+// pois importá-los no index.js já os registra na instância 'sequelize'.
 
-async function convertToDate(table, column, transaction) {
-  const sql = `ALTER TABLE "${table}" ALTER COLUMN "${column}" TYPE date USING ("${column}"::date)`;
-  console.log('[SYNC] Executando SQL:', sql);
-  await sequelize.query(sql, { transaction });
-}
+console.log("\n=====================================");
+console.log("  INICIANDO SINCRONIZAÇÃO DAS TABELAS");
+console.log("=====================================\n");
 
-async function run() {
-  console.log('[SYNC] Iniciando sync seguro (verifica colunas e converte se necessário)...');
-  const t = await sequelize.transaction();
-  try {
-    const schema = 'public';
-    const table = 'ordens_servico';
-    const cols = ['dataInicio', 'dataRetorno'];
+async function syncModels() {
+    try {
+        // A função sequelize.sync() sincroniza *todos* os models que foram definidos
+        // e registrados na instância 'sequelize'.
+        
+        // Usamos 'alter: true' para adicionar as novas colunas (createdAt/updatedAt)
+        // sem destruir os dados existentes nas tabelas.
+        await sequelize.sync({ 
+            alter: true, 
+            logging: (msg) => console.log(`[Sequelize] ${msg}`) // Opcional: para ver o SQL gerado
+        });
 
-    for (const col of cols) {
-      const dt = await getColumnDataType(schema, table, col);
-      console.log(`[SYNC] coluna ${col} tipo atual:`, dt);
-      if (!dt) {
-        console.warn(`[SYNC] coluna ${col} não encontrada — pulei.`);
-        continue;
-      }
-      // se não for 'date' (Postgres), converte
-      if (dt !== 'date') {
-        console.log(`[SYNC] convertendo coluna ${col} para DATE.`);
-        await convertToDate(table, col, t);
-      } else {
-        console.log(`[SYNC] coluna ${col} já é DATE — nada a fazer.`);
-      }
+        console.log("\n=====================================");
+        console.log("   TODAS AS TABELAS FORAM SINCRONIZADAS!");
+        console.log("   (Novas colunas 'createdAt' e 'updatedAt' adicionadas)");
+        console.log("=====================================\n");
+
+        process.exit(0);
+
+    } catch (err) {
+        console.error("\n❌ ERRO AO SINCRONIZAR TABELAS:\n", err);
+        process.exit(1);
     }
-
-    await t.commit();
-    console.log('[SYNC] ALTER TABLE (se necessária) aplicada com sucesso.');
-
-    // Agora sincroniza os models (ajustes de schema)
-    console.log('[SYNC] executando sequelize.sync({ alter: true }) — isso alinhará o schema do Sequelize.');
-    await sequelize.sync({ alter: true });
-    console.log('[SYNC] sequelize.sync({ alter: true }) concluído.');
-
-    console.log('[SYNC] Concluído com sucesso.');
-    process.exit(0);
-  } catch (err) {
-    console.error('[SYNC][ERRO] ocorreu um erro:', err);
-    try { await t.rollback(); } catch (e) { console.error('[SYNC] rollback falhou', e); }
-    process.exit(1);
-  }
 }
 
-run();
+syncModels();

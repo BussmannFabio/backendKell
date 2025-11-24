@@ -53,7 +53,7 @@ app.use('/financeiro', financeiroRoutes);
 app.use('/estoque', estoqueRoutes);
 app.use('/movimentar-estoque', movimentacaoRoutes);
 app.use('/cargas', cargaRoutes);
-app.use('/vales-sp', valePedidoSpRoutes);
+app.use('/vale-pedido-sp', valePedidoSpRoutes);
 
 app.get('/', (req, res) => res.send('API rodando com sucesso'));
 
