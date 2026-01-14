@@ -1,25 +1,25 @@
 import express from 'express';
-import { criarOrdem, listarOrdens, retornarOrdem, deletarOrdem, buscarOrdemPorId, reabrirOrdem} 
-from '../controllers/ordemServico-controller.js';
+import { 
+  criarOrdem, 
+  listarOrdens, 
+  retornarOrdem, 
+  deletarOrdem, 
+  buscarOrdemPorId, 
+  reabrirOrdem 
+} from '../controllers/ordemServico-controller.js';
 
 const router = express.Router();
 
-// Criar OS
-router.post('/', criarOrdem);
+// Operações Principais
+router.post('/', criarOrdem);          // Cria OS e debita estoque material (se houver lógica)
+router.get('/', listarOrdens);         // Lista com include de itens e confecção
+router.get('/:id', buscarOrdemPorId);  // Busca detalhada
 
-// Listar todas as OS
-router.get('/', listarOrdens);
+// Fluxo de Status
+router.patch('/:id/retornar', retornarOrdem); // Baixa itens, gera financeiro e move estoque para 'Pronto'
+router.patch('/:id/reabrir', reabrirOrdem);   // Reverte financeiro e estoque, volta para status 'CRIADA'
 
-// Buscar OS por ID
-router.get('/:id', buscarOrdemPorId);
-
-// Marcar OS como retornada
-router.patch('/:id/retornar', retornarOrdem);
-
-// Deletar OS
-router.delete('/:id', deletarOrdem);
-
-// Reabrir OS retornada
-router.patch('/:id/reabrir', reabrirOrdem);
+// Exclusão
+router.delete('/:id', deletarOrdem);   // Deleta e ajusta estoques
 
 export default router;

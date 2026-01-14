@@ -25,6 +25,9 @@ import ValeMaterial from './valeMaterial-model.js';
 import Material from './material-model.js';
 import EstoqueMaterial from './estoqueMaterial-model.js';
 
+import Cliente from './cliente-model.js';
+import Vendedor from './vendedor-model.js'; 
+
 console.log("=== INICIANDO ASSOCIAÇÕES ===");
 
 /* -----------------------------------------------------
@@ -39,7 +42,13 @@ function safe(source, fn, target, options = {}) {
 }
 
 /* -----------------------------------------------------
-   PRODUTOS
+   VENDEDOR & CLIENTES
+----------------------------------------------------- */
+safe(Vendedor, 'hasMany', Cliente, { foreignKey: 'vendedorId', as: 'clientes' });
+safe(Cliente, 'belongsTo', Vendedor, { foreignKey: 'vendedorId', as: 'vendedor' });
+
+/* -----------------------------------------------------
+   PRODUTOS E ESTOQUE
 ----------------------------------------------------- */
 safe(Produto, 'hasMany', ProdutoTamanho, { foreignKey: 'produtoId', as: 'tamanhos' });
 safe(ProdutoTamanho, 'belongsTo', Produto, { foreignKey: 'produtoId', as: 'produto' });
@@ -68,6 +77,9 @@ safe(OrdemItem, 'belongsTo', OrdemServico, { foreignKey: 'ordemId', as: 'ordem' 
 safe(ProdutoTamanho, 'hasMany', OrdemItem, { foreignKey: 'produtoTamanhoId', as: 'ordemItens' });
 safe(OrdemItem, 'belongsTo', ProdutoTamanho, { foreignKey: 'produtoTamanhoId', as: 'produtoTamanho' });
 
+// Relacionamento direto Item -> Produto (facilita pegar o código do produto no relatório)
+safe(OrdemItem, 'belongsTo', Produto, { foreignKey: 'produtoId', as: 'produto' });
+
 safe(Confeccao, 'hasMany', OrdemServico, { foreignKey: 'confeccaoId', as: 'ordens' });
 safe(OrdemServico, 'belongsTo', Confeccao, { foreignKey: 'confeccaoId', as: 'confeccao' });
 
@@ -81,28 +93,13 @@ safe(Confeccao, 'hasMany', Financeiro, { foreignKey: 'confeccaoId', as: 'finance
 safe(Financeiro, 'belongsTo', Confeccao, { foreignKey: 'confeccaoId', as: 'confeccao' });
 
 /* -----------------------------------------------------
-   VALE PEDIDO SP (CORRIGIDO PARA COMBINAR COM SEUS MODELS)
+   VALE PEDIDO SP
 ----------------------------------------------------- */
-safe(ValePedidoSp, 'hasMany', ValePedidoItemSp, { 
-  foreignKey: 'valePedidoSpId', 
-  as: 'itens'  // 👈 alias correto que o seu FRONT usa
-});
+safe(ValePedidoSp, 'hasMany', ValePedidoItemSp, { foreignKey: 'valePedidoSpId', as: 'itens' });
+safe(ValePedidoItemSp, 'belongsTo', ValePedidoSp, { foreignKey: 'valePedidoSpId', as: 'vale' });
 
-safe(ValePedidoItemSp, 'belongsTo', ValePedidoSp, { 
-  foreignKey: 'valePedidoSpId', 
-  as: 'vale'   // 👈 alias correto do seu model
-});
-
-/* ProdutoTamanho relacionado aos itens */
-safe(ProdutoTamanho, 'hasMany', ValePedidoItemSp, { 
-  foreignKey: 'produtoTamanhoId', 
-  as: 'valesItens' 
-});
-
-safe(ValePedidoItemSp, 'belongsTo', ProdutoTamanho, { 
-  foreignKey: 'produtoTamanhoId', 
-  as: 'produtoTamanho' 
-});
+safe(ProdutoTamanho, 'hasMany', ValePedidoItemSp, { foreignKey: 'produtoTamanhoId', as: 'valesItens' });
+safe(ValePedidoItemSp, 'belongsTo', ProdutoTamanho, { foreignKey: 'produtoTamanhoId', as: 'produtoTamanho' });
 
 /* -----------------------------------------------------
    USERS / ROLES
@@ -166,5 +163,7 @@ export {
   User,
   ValeMaterial,
   Material,
-  EstoqueMaterial
+  EstoqueMaterial,
+  Cliente, 
+  Vendedor 
 };

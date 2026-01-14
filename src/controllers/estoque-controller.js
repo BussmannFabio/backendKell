@@ -145,7 +145,7 @@ const darBaixaEstoquePadrao = async (itensBaixa, t) => {
     const estoquesLock = await EstoqueProduto.findAll({
         where: { produtoTamanhoId: produtoTamanhoIds },
         transaction: t,
-        lock: t.LOCK.UPDATE          // 🔥 permitido, pois agora NÃO há LEFT JOIN
+        lock: t.LOCK.UPDATE 
     });
 
     // Criar um mapa rápido
@@ -198,13 +198,69 @@ const darBaixaEstoquePadrao = async (itensBaixa, t) => {
     }
 };
 
+// ------------------------------------------------------------------------------------------
+// ---------- FUNÇÃO AUXILIAR DE RETORNO DE ESTOQUE PADRÃO (Guaratinguetá) ----------
+// ------------------------------------------------------------------------------------------
+/**
+ * Realiza o estorno (incremento) dos itens no EstoqueProduto (Estoque Padrão)
+ * após a exclusão de um vale-pedido. O incremento é feito em quantidadePronta.
+ * @param {Array<{produtoTamanhoId: number, quantidade: number}>} itensRetorno - Array de itens e quantidades em DÚZIAS.
+ * @param {object} t - Objeto de transação do Sequelize.
+ * @returns {Promise<void>}
+ */
+const retornarEstoquePadrao = async (itensRetorno, t) => {
+    console.log('[RETORNO PADRÃO] Iniciando retorno de estoque...', itensRetorno);
 
-// ⚠️ EXPORTS FINAIS: todas as funções estão exportadas corretamente
+    const produtoTamanhoIds = itensRetorno.map(item => item.produtoTamanhoId);
+
+    // Garante o lock de transação no EstoqueProduto
+    const estoques = await EstoqueProduto.findAll({
+        where: { produtoTamanhoId: produtoTamanhoIds },
+        transaction: t,
+        lock: t.LOCK.UPDATE
+    });
+
+    const estoqueMap = {};
+    estoques.forEach(e => estoqueMap[e.produtoTamanhoId] = e);
+
+    for (const item of itensRetorno) {
+        const { produtoTamanhoId, quantidade } = item;
+        
+        // 💡 CONVERSÃO: Quantidade de dúzias (unidade do pedido) para peças (unidade do estoque).
+        const quantidadeEmPecas = quantidade * 12;
+
+        const estoque = estoqueMap[produtoTamanhoId];
+        
+        if (!estoque) {
+            // Se o item não existe no Estoque Padrão, crie-o (provavelmente não deve acontecer
+            // se a baixa foi feita corretamente, mas é uma segurança).
+             await EstoqueProduto.create(
+                {
+                    produtoTamanhoId: produtoTamanhoId,
+                    quantidadeAberta: 0,
+                    quantidadePronta: quantidadeEmPecas // Retorna para PRONTA
+                },
+                { transaction: t }
+            );
+            console.log(`[RETORNO PADRÃO] Item não existia. Criado e retornado ${quantidadeEmPecas} peças.`);
+        } else {
+            // Se existe, incrementa a quantidadePronta (que foi de onde a baixa saiu).
+            estoque.quantidadePronta += quantidadeEmPecas; 
+            await estoque.save({ transaction: t });
+            
+            console.log(`[RETORNO PADRÃO] Retornado ${quantidade} dúzias (${quantidadeEmPecas} peças) para o produtoTamanhoId ${produtoTamanhoId} (Pronta)`);
+        }
+    }
+};
+
+
+// ⚠️ EXPORTS FINAIS: agora com retornarEstoquePadrao
 export { 
     getEstoqueMateriais, 
     updateEstoqueMaterial, 
     getEstoqueProdutos, 
     updateEstoqueProduto, 
     verificarEstoque,
-    darBaixaEstoquePadrao 
+    darBaixaEstoquePadrao,
+    retornarEstoquePadrao // <-- NOVO EXPORT NECESSÁRIO
 };

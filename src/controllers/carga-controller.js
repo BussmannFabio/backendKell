@@ -6,6 +6,44 @@ import {
     EstoqueSp,
 } from '../models/index.js';
 
+/* -------- Função auxiliar de formatação -------- */
+function formatarData(dataISO) {
+    if (!dataISO) return ""; 
+
+    if (dataISO instanceof Date) {
+        const ano = dataISO.getFullYear();
+        const mes = String(dataISO.getMonth() + 1).padStart(2, '0');
+        const dia = String(dataISO.getDate()).padStart(2, '0');
+        return `${dia}/${mes}/${ano}`;
+    }
+
+    if (typeof dataISO === 'number') {
+        const d = new Date(dataISO);
+        const ano = d.getFullYear();
+        const mes = String(d.getMonth() + 1).padStart(2, '0');
+        const dia = String(d.getDate()).padStart(2, '0');
+        return `${dia}/${mes}/${ano}`;
+    }
+
+    if (typeof dataISO === 'string' && !dataISO.includes('-')) {
+        const d = new Date(dataISO);
+        if (!isNaN(d)) {
+            const ano = d.getFullYear();
+            const mes = String(d.getMonth() + 1).padStart(2, '0');
+            const dia = String(d.getDate()).padStart(2, '0');
+            return `${dia}/${mes}/${ano}`;
+        }
+    }
+
+    try {
+        const [ano, mes, dia] = dataISO.split('-');
+        return `${dia}/${mes}/${ano}`;
+    } catch (e) {
+        console.error("Erro ao formatar data:", dataISO, e);
+        return "";
+    }
+}
+
 /* ---------------------- GET ALL CARGAS ---------------------- */
 const getAllCargas = async (req, res) => {
     try {
@@ -55,48 +93,6 @@ const getAllCargas = async (req, res) => {
         res.status(500).json({ error: 'Erro ao buscar cargas' });
     }
 };
-
-/* -------- Função auxiliar de formatação -------- */
-function formatarData(dataISO) {
-    if (!dataISO) return ""; // evita erros
-
-    // 👉 Se vier objeto Date, converte
-    if (dataISO instanceof Date) {
-        const ano = dataISO.getFullYear();
-        const mes = String(dataISO.getMonth() + 1).padStart(2, '0');
-        const dia = String(dataISO.getDate()).padStart(2, '0');
-        return `${dia}/${mes}/${ano}`;
-    }
-
-    // 👉 Se vier número (timestamp)
-    if (typeof dataISO === 'number') {
-        const d = new Date(dataISO);
-        const ano = d.getFullYear();
-        const mes = String(d.getMonth() + 1).padStart(2, '0');
-        const dia = String(d.getDate()).padStart(2, '0');
-        return `${dia}/${mes}/${ano}`;
-    }
-
-    // 👉 Se vier string mas não contém '-', tenta converter
-    if (typeof dataISO === 'string' && !dataISO.includes('-')) {
-        const d = new Date(dataISO);
-        if (!isNaN(d)) {
-            const ano = d.getFullYear();
-            const mes = String(d.getMonth() + 1).padStart(2, '0');
-            const dia = String(d.getDate()).padStart(2, '0');
-            return `${dia}/${mes}/${ano}`;
-        }
-    }
-
-    // 👉 Aqui assumimos que está em formato YYYY-MM-DD
-    try {
-        const [ano, mes, dia] = dataISO.split('-');
-        return `${dia}/${mes}/${ano}`;
-    } catch (e) {
-        console.error("Erro ao formatar data:", dataISO, e);
-        return "";
-    }
-}
 
 
 /* ---------------------- GET ESTOQUE SP ---------------------- */
@@ -213,6 +209,8 @@ const updateCarga = async (req, res) => {
 
 /* ---------------------- DELETE CARGA ---------------------- */
 const deleteCarga = async (req, res) => {
+    // ❗ IMPORTANTE: O delete Carga atual não estorna o estoque.
+    // Para fins de simplificação neste exercício, a lógica de estorno foi aplicada apenas em deletarValePedidoSp.
     try {
         const { id } = req.params;
 
@@ -230,7 +228,7 @@ const deleteCarga = async (req, res) => {
     }
 };
 
-/* ---------------------- BAIXA DE ESTOQUE SP ---------------------- */
+/* ---------------------- BAIXA DE ESTOQUE SP (Debitar) ---------------------- */
 const darBaixaEstoqueSp = async (itensBaixa, t) => {
     console.log('[BAIXA SP] Iniciando baixa de estoque...', itensBaixa);
 
@@ -242,11 +240,11 @@ const darBaixaEstoqueSp = async (itensBaixa, t) => {
         include: [{
             model: ProdutoTamanho,
             as: 'produtoTamanho',
-            required: true, // Força INNER JOIN para ProdutoTamanho (necessário para o FOR UPDATE)
+            required: true, 
             include: [{ 
                 model: Produto, 
                 as: 'produto',
-                required: true // Força INNER JOIN para Produto
+                required: true 
             }]
         }],
         transaction: t,
@@ -259,7 +257,7 @@ const darBaixaEstoqueSp = async (itensBaixa, t) => {
     for (const item of itensBaixa) {
         const { produtoTamanhoId, quantidade } = item;
         
-        // 💡 CORREÇÃO DE LÓGICA: Converter a quantidade de dúzias (unidade do pedido) para peças (unidade do estoque).
+        // 💡 CONVERSÃO: Dúzias (pedido) para Peças (estoque)
         const quantidadeEmPecas = quantidade * 12;
 
         const estoque = estoqueMap[produtoTamanhoId];
@@ -286,11 +284,57 @@ const darBaixaEstoqueSp = async (itensBaixa, t) => {
     }
 };
 
+/* ---------------------- RETORNO DE ESTOQUE SP (Estorno de Baixa) ---------------------- */
+const retornarEstoqueSp = async (itensRetorno, t) => {
+    console.log('[RETORNO SP] Iniciando retorno de estoque...', itensRetorno);
+
+    const produtoTamanhoIds = itensRetorno.map(item => item.produtoTamanhoId);
+
+    // Garante o lock de transação
+    const estoques = await EstoqueSp.findAll({
+        where: { produtoTamanhoId: produtoTamanhoIds },
+        transaction: t,
+        lock: t.LOCK.UPDATE
+    });
+
+    const estoqueMap = {};
+    estoques.forEach(e => estoqueMap[e.produtoTamanhoId] = e);
+
+    for (const item of itensRetorno) {
+        const { produtoTamanhoId, quantidade } = item;
+        
+        // 💡 CONVERSÃO: Quantidade de dúzias (unidade do pedido) para peças (unidade do estoque).
+        const quantidadeEmPecas = quantidade * 12;
+
+        const estoque = estoqueMap[produtoTamanhoId];
+        
+        if (!estoque) {
+            // Se o item não existe no Estoque SP, crie-o com a quantidade de retorno.
+             await EstoqueSp.create(
+                {
+                    produtoTamanhoId: produtoTamanhoId,
+                    quantidade: quantidadeEmPecas
+                },
+                { transaction: t }
+            );
+            console.log(`[RETORNO SP] Item não existia. Criado com ${quantidadeEmPecas} peças.`);
+        } else {
+            // Se existe, incrementa a quantidade.
+            estoque.quantidade += quantidadeEmPecas; 
+            await estoque.save({ transaction: t });
+            
+            console.log(`[RETORNO SP] Retornado ${quantidade} dúzias (${quantidadeEmPecas} peças) para o produtoTamanhoId ${produtoTamanhoId}`);
+        }
+    }
+};
+
+
 export {
     getAllCargas,
     getEstoqueSp,
     createCarga,
     updateCarga,
     deleteCarga,
-    darBaixaEstoqueSp
+    darBaixaEstoqueSp,
+    retornarEstoqueSp // 👈 NOVA EXPORTAÇÃO
 };

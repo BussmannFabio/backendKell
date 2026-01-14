@@ -3,11 +3,13 @@ import {
     ValePedidoItemSp,
     ProdutoTamanho,
     Produto,
-    sequelize
+    sequelize,
 } from '../models/index.js';
 
-import { darBaixaEstoquePadrao } from './estoque-controller.js';
-import { darBaixaEstoqueSp } from './carga-controller.js';
+// Assumindo que o 'estoque-controller.js' exporta darBaixaEstoquePadrao E retornarEstoquePadrao
+import { darBaixaEstoquePadrao, retornarEstoquePadrao } from './estoque-controller.js';
+// Importamos as funções de Baixa e a nova função de Retorno (Estorno) para SP
+import { darBaixaEstoqueSp, retornarEstoqueSp } from './carga-controller.js'; 
 
 /* =======================================================================
     🔍 BUSCAR PRODUTO COMPLETO (Produto + Tamanhos)
@@ -31,8 +33,6 @@ const buscarProdutoCompleto = async (req, res) => {
         console.log(`[VALE-SP] ID do Produto Encontrado: ${produto.id}`);
 
         // 2. Buscar todos os tamanhos associados ao produto.
-        // 🛑 CORREÇÃO APLICADA: Assumindo que a coluna chave estrangeira é 'produto_id' (snake_case) 
-        // e removendo a ordenação 'ordem' (que pode não existir ou estar mal definida).
         const tamanhos = await ProdutoTamanho.findAll({
             where: { produtoId: produto.id }
         });
@@ -67,7 +67,7 @@ const buscarProdutoCompleto = async (req, res) => {
 ======================================================================= */
 const criarValePedidoSp = async (req, res) => {
     console.log(`[VALE-SP] Criando vale…`);
-
+    
     const {
         cliente,
         endereco,
@@ -153,18 +153,25 @@ const criarValePedidoSp = async (req, res) => {
 
         // 2. Lógica Condicional da Baixa de Estoque
         if (itensParaBaixa.length > 0) {
-            // Verifica qual estoque usar baseado na cidadeSeparacao
-            const isEstoqueSp = cidadeSeparacao?.toUpperCase() === 'SÃO PAULO' || cidadeSeparacao?.toUpperCase() === 'SP';
+            
+            // Normaliza a string da cidade removendo espaços e comparando em maiúsculas
+            const cidadeNormalizada = cidadeSeparacao?.toUpperCase()?.trim();
+            
+            const isEstoqueSp = cidadeNormalizada === 'SÃO PAULO' || cidadeNormalizada === 'SP';
 
             if (isEstoqueSp) {
-                console.log(`[BAIXA] Dando baixa no ESTOQUE SP (Carga) para o Pedido #${vale.id}`);
-                // Usa a função do CargaController
-                await darBaixaEstoqueSp(itensParaBaixa, t);
+                console.log(`[BAIXA OK] Selecionado ESTOQUE SP (Carga) para o Pedido #${vale.id}`);
+                await darBaixaEstoqueSp(itensParaBaixa, t); 
+                
+            } else if (cidadeNormalizada === 'GUARATINGUETÁ' || cidadeNormalizada === 'GUA') {
+                console.log(`[BAIXA OK] Selecionado ESTOQUE PADRÃO (Guaratinguetá) para o Pedido #${vale.id}`);
+                await darBaixaEstoquePadrao(itensParaBaixa, t); 
+                
             } else {
-                console.log(`[BAIXA] Dando baixa no ESTOQUE PADRÃO (Guaratinguetá) para o Pedido #${vale.id}`);
-                // Usa a função do EstoqueController
-                await darBaixaEstoquePadrao(itensParaBaixa, t);
+                 console.warn(`[BAIXA ALERTA] Cidade de separação '${cidadeSeparacao}' não reconhecida. Nenhuma baixa de estoque aplicada.`);
             }
+        } else {
+            console.warn(`[BAIXA ALERTA] Pedido #${vale.id} criado SEM itens para baixa.`);
         }
 
 
@@ -178,8 +185,9 @@ const criarValePedidoSp = async (req, res) => {
         console.error('Erro criarValePedidoSp:', error);
 
         let errorMessage = error.message;
+        
         if (errorMessage.includes('Estoque insuficiente') || errorMessage.includes('não encontrado')) {
-            // Mantém a mensagem detalhada do controller de estoque
+            // Mantém a mensagem detalhada se vier da função de baixa de estoque
         } else {
             errorMessage = 'Erro ao criar vale e dar baixa no estoque';
         }
@@ -210,27 +218,75 @@ const listarValesPedidoSp = async (req, res) => {
 }
 
 /* =======================================================================
-    🗑️ DELETAR VALE
+    🗑️ DELETAR VALE (Com Retorno de Estoque - Estratégia Duas Buscas)
 ======================================================================= */
 const deletarValePedidoSp = async (req, res) => {
     const { id } = req.params;
 
-    console.log(`[VALE-SP] Deletando vale #${id}`);
+    console.log(`[VALE-SP] Deletando vale #${id} e estornando estoque...`);
 
     try {
-        // Usamos uma transação para garantir a atomicidade
         await sequelize.transaction(async (t) => {
+            
+            // 1. BUSCAR E TRAVAR APENAS O VALE PRINCIPAL
+            const vale = await ValePedidoSp.findByPk(id, {
+                transaction: t, 
+                lock: t.LOCK.UPDATE // Trava a tabela ValePedidoSp
+            });
+
+            if (!vale) {
+                return res.status(404).json({ error: 'Vale pedido não encontrado para exclusão' });
+            }
+            
+            // 2. BUSCAR ITENS SEPARADAMENTE (sem lock de JOIN, que causava o erro anterior)
+            const itensDoVale = await ValePedidoItemSp.findAll({
+                where: { valePedidoSpId: id },
+                attributes: ['produtoTamanhoId', 'quantidade'], // ID do produto e a quantidade (dúzia)
+                transaction: t // Inclui na transação
+            });
+            
+            // 3. Coletar itens para estorno
+            const itensParaRetorno = itensDoVale.map(item => ({
+                produtoTamanhoId: item.produtoTamanhoId,
+                quantidade: item.quantidade // Quantidade em DÚZIA
+            }));
+
+            // 4. Lógica de Estorno de Estoque
+            if (itensParaRetorno.length > 0) {
+                const cidadeSeparacao = vale.cidadeSeparacao;
+                const cidadeNormalizada = cidadeSeparacao?.toUpperCase()?.trim();
+                
+                const isEstoqueSp = cidadeNormalizada === 'SÃO PAULO' || cidadeNormalizada === 'SP';
+
+                if (isEstoqueSp) {
+                    console.log(`[ESTORNO OK] Retornando itens para ESTOQUE SP.`);
+                    // A função retornarEstoqueSp lida com o lock dentro dela
+                    await retornarEstoqueSp(itensParaRetorno, t); 
+                } else {
+                    console.log(`[ESTORNO OK] Retornando itens para ESTOQUE PADRÃO (Guaratinguetá).`);
+                    // A função retornarEstoquePadrao lida com o lock dentro dela
+                    await retornarEstoquePadrao(itensParaRetorno, t); 
+                }
+            } else {
+                 console.warn(`[ESTORNO ALERTA] Pedido #${id} não tinha itens para estornar o estoque.`);
+            }
+
+            // 5. Deletar os itens e o vale principal (DEPOIS de estornar o estoque)
             await ValePedidoItemSp.destroy({ where: { valePedidoSpId: id }, transaction: t });
             await ValePedidoSp.destroy({ where: { id }, transaction: t });
+            
+            console.log(`[VALE-SP] Vale #${id} deletado e estoque estornado com sucesso.`);
         });
 
-        res.json({ message: 'Vale deletado!' });
+        res.json({ message: 'Vale deletado e estoque estornado com sucesso!' });
 
     } catch (error) {
-        console.error('Erro deletarValePedidoSp:', error);
-        res.status(500).json({ error: 'Erro ao deletar vale', detalhe: error.message });
+        // O rollback é tratado implicitamente pelo sequelize.transaction se houver erro
+        console.error('Erro deletarValePedidoSp e estorno de estoque:', error);
+        res.status(500).json({ error: 'Erro ao deletar vale e estornar estoque', detalhe: error.message });
     }
 }
+
 
 /* =======================================================================
     📄 GERAR RELATÓRIO (FORMATO 1/4 A4 E DUAS VIAS)
