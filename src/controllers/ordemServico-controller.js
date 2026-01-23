@@ -5,14 +5,12 @@ import {
   ProdutoTamanho,
   EstoqueProduto,
   Financeiro,
-  EstoqueMaterial,
-  Material,
   Confeccao,
   sequelize
 } from '../models/index.js';
-import { Op, fn, col } from 'sequelize';
+import { Op } from 'sequelize';
 
-/** Helper utilitário: formata Date/string para YYYY-MM-DD (local) */
+/** Helper utilitário: formata Date/string para YYYY-MM-DD */
 function formatDateToYYYYMMDD(input) {
   if (!input) return null;
   if (typeof input === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(input)) return input;
@@ -24,6 +22,7 @@ function formatDateToYYYYMMDD(input) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+/** Resolve produto por ID ou Código */
 async function resolveProduto(produtoIdOrCodigo, transaction = null) {
   if (produtoIdOrCodigo == null) return null;
   const byPk = await Produto.findByPk(produtoIdOrCodigo, { transaction });
@@ -33,6 +32,51 @@ async function resolveProduto(produtoIdOrCodigo, transaction = null) {
   return await Produto.findOne({ where: { codigo }, transaction });
 }
 
+// ---------------------- LISTAGEM (Otimizada) ----------------------
+export const listarOrdens = async (req, res) => {
+  try {
+    const { status } = req.query;
+    const where = {};
+    
+    if (status === 'ABERTA') {
+      where.status = { [Op.ne]: 'RETORNADA' };
+    } else if (status && status !== 'undefined' && status !== 'null') {
+      // Se vier um status específico (ex: 'CRIADA'), filtra por ele
+      where.status = status;
+    }
+    // Se o status for vazio/undefined (como faremos no Angular), 
+    // o 'where' continua vazio {} e traz TODAS as ordens.
+
+    const ordens = await OrdemServico.findAll({
+      where,
+      include: [
+        { model: Confeccao, as: 'confeccao', required: false },
+        { 
+          model: OrdemItem, 
+          as: 'itens',
+          required: false,
+          include: [{ model: Produto, as: 'produto', required: false }] 
+        }
+      ],
+      order: [['id', 'DESC']] 
+    });
+
+    const ordensSanitizadas = ordens.map(o => {
+      const item = o.get({ plain: true });
+      return {
+        ...item,
+        totalPecasEsperadas: Number(item.totalPecasEsperadas || 0),
+        totalPecasReais: Number(item.totalPecasReais || 0),
+        diferencaPecas: Number(item.diferencaPecas || 0)
+      };
+    });
+
+    return res.json({ success: true, ordens: ordensSanitizadas });
+  } catch (error) {
+    console.error('[ORDEM][LISTAR] Erro:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
 // ---------------------- CRIAR ORDEM ----------------------
 export const criarOrdem = async (req, res) => {
   const transaction = await sequelize.transaction();
@@ -40,46 +84,40 @@ export const criarOrdem = async (req, res) => {
     const { itens, dataInicio, confeccaoId } = req.body;
 
     if (!confeccaoId) {
-      await transaction.rollback();
+      if (transaction) await transaction.rollback();
       return res.status(400).json({ success: false, error: 'confeccaoId é obrigatório' });
-    }
-    if (!Array.isArray(itens) || itens.length === 0) {
-      await transaction.rollback();
-      return res.status(400).json({ success: false, error: 'Itens da ordem são obrigatórios' });
     }
 
     const dataInicioNorm = formatDateToYYYYMMDD(dataInicio);
+    
     const ordem = await OrdemServico.create({ 
       status: 'CRIADA', 
       dataInicio: dataInicioNorm, 
-      confeccaoId 
+      confeccaoId,
+      totalPecasEsperadas: 0,
+      totalPecasReais: 0,
+      diferencaPecas: 0
     }, { transaction });
 
-    const resultados = [];
+    let somaTotalEsperada = 0;
 
     for (const itemRaw of itens) {
       const volumes = Number(itemRaw.volumes || 0);
       const pecasPorVolume = Number(itemRaw.pecasPorVolume || 0);
-      const produtoIdOrCodigo = itemRaw.produtoId;
+      const produto = await resolveProduto(itemRaw.produtoId, transaction);
       const tamanhoRaw = String(itemRaw.tamanho || '').trim().toUpperCase();
 
-      const produto = await resolveProduto(produtoIdOrCodigo, transaction);
-      if (!produto) {
-        resultados.push({ item: itemRaw, status: 'erro', mensagem: 'Produto não encontrado' });
-        continue;
-      }
+      if (!produto) continue;
 
-      let produtoTamanho = await ProdutoTamanho.findOne({
+      const produtoTamanho = await ProdutoTamanho.findOne({
         where: { produtoId: produto.id, tamanho: tamanhoRaw },
         transaction
       });
 
-      if (!produtoTamanho) {
-        resultados.push({ item: itemRaw, status: 'erro', mensagem: 'Tamanho não encontrado' });
-        continue;
-      }
+      if (!produtoTamanho) continue;
 
       const pecasEsperadas = volumes * pecasPorVolume;
+      somaTotalEsperada += pecasEsperadas;
 
       await OrdemItem.create({
         ordemId: ordem.id,
@@ -89,6 +127,8 @@ export const criarOrdem = async (req, res) => {
         volumes,
         pecasPorVolume,
         pecasEsperadas,
+        pecasReais: 0,
+        pecasDefeituosas: 0,
         corte: itemRaw.corte ? String(itemRaw.corte) : null
       }, { transaction });
 
@@ -103,19 +143,20 @@ export const criarOrdem = async (req, res) => {
         estoque.quantidadeAberta = Number(estoque.quantidadeAberta || 0) + pecasEsperadas;
         await estoque.save({ transaction });
       }
-      resultados.push({ item: itemRaw, status: 'ok' });
     }
 
+    await ordem.update({ totalPecasEsperadas: somaTotalEsperada }, { transaction });
+
     await transaction.commit();
-    const ordemCompleta = await OrdemServico.findByPk(ordem.id, { include: ['itens', 'confeccao'] });
-    return res.status(201).json({ success: true, ordem: ordemCompleta });
+    return res.status(201).json({ success: true, id: ordem.id });
   } catch (error) {
     if (transaction) await transaction.rollback();
+    console.error('[ORDEM][CRIAR] Erro:', error);
     return res.status(500).json({ success: false, error: error.message });
   }
 };
 
-// ---------------------- RETORNAR ORDEM (COM FECHAMENTO FINANCEIRO) ----------------------
+// ---------------------- RETORNAR ORDEM (FECHAMENTO) ----------------------
 export const retornarOrdem = async (req, res) => {
   const transaction = await sequelize.transaction();
   try {
@@ -123,89 +164,74 @@ export const retornarOrdem = async (req, res) => {
     const { itens: itensRecebidos = [], retornoTotal = false, fecharSemQuantidade = false } = req.body;
 
     const ordemServico = await OrdemServico.findByPk(id, {
-      include: ['itens', 'confeccao'],
+      include: [{ model: OrdemItem, as: 'itens', include: [{ model: Produto, as: 'produto' }] }],
       transaction
     });
 
     if (!ordemServico || ordemServico.status === 'RETORNADA') {
-      await transaction.rollback();
+      if (transaction) await transaction.rollback();
       return res.status(400).json({ success: false, error: 'Ordem inválida ou já retornada' });
     }
 
-    let acumuladoEsperado = 0;
-    let acumuladoReal = 0;
-    let acumuladoDefeito = 0;
+    let acumuladoRealFinal = 0;
 
     for (const itemOrdem of ordemServico.itens) {
       const itemFront = itensRecebidos.find(i => String(i.id) === String(itemOrdem.id));
-      const pecasEsperadasAntes = Number(itemOrdem.pecasEsperadas || 0);
+      const pecasPendenteNoItem = Number(itemOrdem.pecasEsperadas || 0);
       
-      let pecasRetornadas = 0;
+      let pecasSendoEntregues = 0;
       if (itensRecebidos.length > 0) {
-        pecasRetornadas = Number(itemFront?.pecasRetornadas || 0);
+        pecasSendoEntregues = Number(itemFront?.pecasRetornadas || 0);
       } else if (retornoTotal && !fecharSemQuantidade) {
-        pecasRetornadas = pecasEsperadasAntes;
+        pecasSendoEntregues = pecasPendenteNoItem;
       }
 
       const defeitos = Number(itemFront?.pecasComDefeito || 0);
-      const pecasBoas = Math.max(pecasRetornadas - defeitos, 0);
-
-      // Lógica de Estoque
-      const reducaoAberta = (retornoTotal || fecharSemQuantidade) ? pecasEsperadasAntes : pecasRetornadas;
+      const pecasBoas = Math.max(pecasSendoEntregues - defeitos, 0);
+      const reducaoEstoqueAberto = (retornoTotal || fecharSemQuantidade) ? pecasPendenteNoItem : pecasSendoEntregues;
       
-      let estoque = await EstoqueProduto.findOne({ 
-        where: { produtoTamanhoId: itemOrdem.produtoTamanhoId }, 
-        transaction 
-      });
-
+      let estoque = await EstoqueProduto.findOne({ where: { produtoTamanhoId: itemOrdem.produtoTamanhoId }, transaction });
       if (estoque) {
-        estoque.quantidadeAberta = Math.max(Number(estoque.quantidadeAberta || 0) - reducaoAberta, 0);
-        estoque.quantidadePronta = Number(estoque.quantidadePronta || 0) + peasBoas;
+        estoque.quantidadeAberta = Math.max(Number(estoque.quantidadeAberta || 0) - reducaoEstoqueAberto, 0);
+        estoque.quantidadePronta = Number(estoque.quantidadePronta || 0) + pecasBoas;
         await estoque.save({ transaction });
       }
 
-      // Atualiza Item
       itemOrdem.pecasReais = Number(itemOrdem.pecasReais || 0) + pecasBoas;
       itemOrdem.pecasDefeituosas = Number(itemOrdem.pecasDefeituosas || 0) + defeitos;
-      itemOrdem.pecasEsperadas = (retornoTotal || fecharSemQuantidade) ? 0 : Math.max(pecasEsperadasAntes - reducaoAberta, 0);
+      itemOrdem.pecasEsperadas = (retornoTotal || fecharSemQuantidade) ? 0 : Math.max(pecasPendenteNoItem - reducaoEstoqueAberto, 0);
       await itemOrdem.save({ transaction });
 
-      // Cálculos Financeiros por item
-      const produto = await Produto.findByPk(itemOrdem.produtoId, { transaction });
-      const valorUnit = (produto?.valorMaoDeObraDuzia || 0) / 12;
-      const totalPagar = (pecasBoas + defeitos) * valorUnit;
+      const valorUnit = (Number(itemOrdem.produto?.valorMaoDeObraDuzia || 0)) / 12;
+      const valorLancamento = (pecasBoas + defeitos) * valorUnit;
 
-      await Financeiro.create({
-        ordemId: id,
-        confeccaoId: ordemServico.confeccaoId,
-        valorMaoDeObra: totalPagar,
-        pecasProduzidas: pecasBoas + defeitos,
-        status: 'ABERTO'
-      }, { transaction });
+      if (valorLancamento > 0) {
+        await Financeiro.create({
+          ordemId: id,
+          confeccaoId: ordemServico.confeccaoId,
+          valorMaoDeObra: valorLancamento,
+          pecasProduzidas: (pecasBoas + defeitos),
+          status: 'ABERTO'
+        }, { transaction });
+      }
 
-      acumuladoEsperado += pecasEsperadasAntes;
-      acumuladoReal += (pecasBoas + defeitos);
-      acumuladoDefeito += defeitos;
+      acumuladoRealFinal += itemOrdem.pecasReais;
     }
 
-    // FECHAMENTO DA OS
-    const finalizada = (ordemServico.itens.every(i => i.pecasEsperadas === 0));
-    const statusFinal = finalizada ? 'RETORNADA' : 'EM_PRODUCAO';
+    const todosItensEntregues = (ordemServico.itens.every(i => Number(i.pecasEsperadas) <= 0));
     
-    // 🔥 Grava o resumo na Ordem
     await ordemServico.update({
-      status: statusFinal,
-      dataRetorno: finalizada ? formatDateToYYYYMMDD(new Date()) : null,
-      totalPecasEsperadas: acumuladoEsperado,
-      totalPecasReais: acumuladoReal,
-      // Exemplo de cálculo de quebra:
-      diferencaPecas: acumuladoReal - acumuladoEsperado
+      status: todosItensEntregues ? 'RETORNADA' : 'EM_PRODUCAO',
+      dataRetorno: todosItensEntregues ? formatDateToYYYYMMDD(new Date()) : null,
+      totalPecasReais: acumuladoRealFinal,
+      diferencaPecas: acumuladoRealFinal - Number(ordemServico.totalPecasEsperadas || 0)
     }, { transaction });
 
     await transaction.commit();
-    return res.json({ success: true, status: statusFinal });
+    return res.json({ success: true });
   } catch (error) {
     if (transaction) await transaction.rollback();
+    console.error('[ORDEM][RETORNO] Erro:', error);
     return res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -215,56 +241,62 @@ export const reabrirOrdem = async (req, res) => {
   const transaction = await sequelize.transaction();
   try {
     const { id } = req.params;
-    const ordem = await OrdemServico.findByPk(id, { include: ['itens'], transaction });
+    const ordem = await OrdemServico.findByPk(id, { 
+      include: [{ model: OrdemItem, as: 'itens' }], 
+      transaction 
+    });
 
-    if (!ordem || (ordem.status !== 'RETORNADA' && ordem.status !== 'EM_PRODUCAO')) {
-      await transaction.rollback();
-      return res.status(400).json({ success: false, error: 'Ordem não pode ser reaberta' });
+    if (!ordem) {
+      if (transaction) await transaction.rollback();
+      return res.status(404).json({ success: false, error: 'Ordem não encontrada' });
     }
 
     for (const item of ordem.itens) {
-      const pecasReais = Number(item.pecasReais || 0);
-      const estoque = await EstoqueProduto.findOne({ where: { produtoTamanhoId: item.produtoTamanhoId }, transaction });
+      const pecasReaisDesteItem = Number(item.pecasReais || 0);
       
-      if (estoque && pecasReais > 0) {
-        estoque.quantidadePronta = Math.max(Number(estoque.quantidadePronta) - pecasReais, 0);
-        estoque.quantidadeAberta = Number(estoque.quantidadeAberta) + pecasReais;
+      const estoque = await EstoqueProduto.findOne({ 
+        where: { produtoTamanhoId: item.produtoTamanhoId }, 
+        transaction 
+      });
+      
+      if (estoque) {
+        estoque.quantidadePronta = Math.max(Number(estoque.quantidadePronta || 0) - pecasReaisDesteItem, 0);
+        estoque.quantidadeAberta = Number(estoque.quantidadeAberta || 0) + pecasReaisDesteItem;
         await estoque.save({ transaction });
       }
 
-      item.pecasEsperadas = Number(item.pecasEsperadas) + pecasReais;
+      item.pecasEsperadas = Number(item.pecasEsperadas || 0) + pecasReaisDesteItem;
       item.pecasReais = 0;
       item.pecasDefeituosas = 0;
       await item.save({ transaction });
     }
 
     await Financeiro.destroy({ where: { ordemId: id }, transaction });
-    await ordem.update({ status: 'CRIADA', dataRetorno: null, totalPecasReais: 0 }, { transaction });
+    await ordem.update({ 
+      status: 'CRIADA', 
+      dataRetorno: null, 
+      totalPecasReais: 0,
+      diferencaPecas: 0 
+    }, { transaction });
 
     await transaction.commit();
-    return res.json({ success: true, message: 'Ordem reaberta com sucesso' });
+    return res.json({ success: true });
   } catch (error) {
     if (transaction) await transaction.rollback();
+    console.error('[ORDEM][REABRIR] Erro:', error);
     return res.status(500).json({ success: false, error: error.message });
   }
 };
 
-// ---------------------- LISTAGEM E BUSCA ----------------------
-export const listarOrdens = async (req, res) => {
-  try {
-    const ordens = await OrdemServico.findAll({
-      include: ['itens', 'confeccao'],
-      order: [['createdAt', 'DESC']]
-    });
-    return res.json({ success: true, ordens });
-  } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
-  }
-};
-
+// ---------------------- BUSCA POR ID ----------------------
 export const buscarOrdemPorId = async (req, res) => {
   try {
-    const ordem = await OrdemServico.findByPk(req.params.id, { include: ['itens', 'confeccao'] });
+    const ordem = await OrdemServico.findByPk(req.params.id, { 
+      include: [
+        { model: Confeccao, as: 'confeccao' },
+        { model: OrdemItem, as: 'itens', include: [{ model: Produto, as: 'produto' }] }
+      ] 
+    });
     if (!ordem) return res.status(404).json({ success: false, error: 'Não encontrada' });
     return res.json({ success: true, ordem });
   } catch (error) {
@@ -272,14 +304,18 @@ export const buscarOrdemPorId = async (req, res) => {
   }
 };
 
+// ---------------------- DELETAR ORDEM ----------------------
 export const deletarOrdem = async (req, res) => {
   const transaction = await sequelize.transaction();
   try {
     const { id } = req.params;
     const ordem = await OrdemServico.findByPk(id, { include: ['itens'], transaction });
-    if (!ordem) return res.status(404).json({ success: false, error: 'Não encontrada' });
+    
+    if (!ordem) {
+      if (transaction) await transaction.rollback();
+      return res.status(404).json({ success: false, error: 'Ordem não encontrada' });
+    }
 
-    // Reverter estoque antes de deletar
     for (const item of ordem.itens) {
       const estoque = await EstoqueProduto.findOne({ where: { produtoTamanhoId: item.produtoTamanhoId }, transaction });
       if (estoque) {

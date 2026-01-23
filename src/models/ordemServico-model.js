@@ -3,26 +3,49 @@ import sequelize from '../config/database.js';
 
 const OrdemServico = sequelize.define('OrdemServico', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  dataInicio: { type: DataTypes.DATEONLY, allowNull: true },
-  dataRetorno: { type: DataTypes.DATEONLY, allowNull: true },
+  dataInicio: { type: DataTypes.DATEONLY, allowNull: true, field: 'dataInicio' },
+  dataRetorno: { type: DataTypes.DATEONLY, allowNull: true, field: 'dataRetorno' },
+  
   status: {
-    type: DataTypes.ENUM('CRIADA', 'EM_PRODUCAO', 'RETORNADA'),
+    // Adicionado 'EM_PRODUCAO' e 'ABERTA' para compatibilidade com o frontend
+    type: DataTypes.ENUM('CRIADA', 'ABERTA', 'EM_PRODUCAO', 'RETORNADA'),
     defaultValue: 'CRIADA'
   },
-  confeccaoId: { type: DataTypes.INTEGER, allowNull: false },
+  
+  confeccaoId: { type: DataTypes.INTEGER, allowNull: false, field: 'confeccaoId' },
 
-  // Novos campos para o resumo de fechamento
-  totalPecasEsperadas: { type: DataTypes.INTEGER, allowNull: true },
-  totalPecasEsperadasAjustadas: { type: DataTypes.INTEGER, allowNull: true },
-  totalPecasReais: { type: DataTypes.INTEGER, allowNull: true },
-  diferencaPecas: { type: DataTypes.INTEGER, allowNull: true },
-  diferencaPercentual: { type: DataTypes.FLOAT, allowNull: true }
+  // Alterado para FLOAT para evitar erro 500 em cálculos decimais no retorno de OS
+  totalPecasEsperadas: { 
+    type: DataTypes.FLOAT, 
+    allowNull: true, 
+    field: 'totalPecasEsperadas' 
+  },
+  totalPecasEsperadasAjustadas: { 
+    type: DataTypes.FLOAT, 
+    allowNull: true, 
+    field: 'totalPecasEsperadasAjustadas' 
+  },
+  totalPecasReais: { 
+    type: DataTypes.FLOAT, 
+    allowNull: true, 
+    field: 'totalPecasReais' 
+  },
+  diferencaPecas: { 
+    type: DataTypes.FLOAT, 
+    allowNull: true, 
+    field: 'diferencaPecas' 
+  },
+  diferencaPercentual: { 
+    type: DataTypes.FLOAT, 
+    allowNull: true, 
+    field: 'diferencaPercentual' 
+  }
 }, {
   sequelize,
   modelName: 'OrdemServico',
   tableName: 'ordens_servico',
-  timestamps: false
+  // Mantido false conforme seu banco atual, mas isso exige atenção na ordenação
+  timestamps: false 
 });
 
-// ESSA LINHA É A QUE RESOLVE O ERRO DE NODEMON
 export default OrdemServico;
