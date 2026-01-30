@@ -1,58 +1,14 @@
 // src/server.js
+import os from 'os';
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 
-const app = express();
-const PORT = Number(process.env.PORT) || 3000;
-
-console.log('--- [SISTEMA] INICIANDO BACKEND KELL (MODO REDE ATIVADO) ---');
-
-/* ===================== CONFIGURAÇÃO DE CORS ===================== */
-// Configuração agressiva para garantir que o navegador não bloqueie o POST
-app.use(cors({
-    origin: '*', 
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-    optionsSuccessStatus: 204
-}));
-
-/* ===================== MIDDLEWARES DE PARSING ===================== */
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-/* ===================== LOG INTERCEPTOR (PARA DEBUG DE REDE) ===================== */
-app.use((req, res, next) => {
-    const start = Date.now();
-    console.log(`[${new Date().toLocaleTimeString()}] INCOMING: ${req.method} ${req.originalUrl} de ${req.ip}`);
-    
-    // Log para verificar se o banco responde rápido ou trava
-    res.on('finish', () => {
-        const duration = Date.now() - start;
-        console.log(`[${new Date().toLocaleTimeString()}] COMPLETED: ${req.method} ${req.originalUrl} - ${res.statusCode} (${duration}ms)`);
-    });
-    next();
-});
-
-/* ===================== ROTAS PÚBLICAS ===================== */
-app.get('/health', (req, res) => {
-    res.status(200).json({ 
-        status: 'ok', 
-        timestamp: new Date().toISOString(),
-        serverIp: '192.168.10.15'
-    });
-});
-
-app.get('/', (req, res) => {
-    res.send('🚀 API Kell Online e visível na rede!');
-});
-
-/* ===================== IMPORTAÇÃO DE MODELOS E BANCO ===================== */
+// Importação do banco e modelos
 import './models/index.js';
 import sequelize from './config/database.js';
 
-/* ===================== IMPORTAÇÃO DE ROTAS ===================== */
+// Importação de todas as rotas
 import authRoutes from './routes/auth-routes.js';
 import usersRoutes from './routes/user-routes.js';
 import confeccaoRoutes from './routes/confeccao-routes.js';
@@ -67,7 +23,32 @@ import valePedidoSpRoutes from './routes/valePedidoSp-routes.js';
 import clienteRoutes from './routes/clientes-routes.js';
 import vendedorRoutes from './routes/vendedor-routes.js';
 
-// Definição das Rotas
+const app = express();
+
+// Mudamos para 3001 para desvencilhar do erro de porta presa no Windows
+const PORT = Number(process.env.PORT) || 3001; 
+
+/* ===================== CONFIGURAÇÕES BÁSICAS ===================== */
+app.use(cors({ 
+    origin: '*', 
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'] 
+}));
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+/* ===================== LOG DE REQUISIÇÕES ===================== */
+app.use((req, res, next) => {
+    console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.originalUrl}`);
+    next();
+});
+
+/* ===================== ROTAS DE TESTE ===================== */
+app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
+app.get('/', (req, res) => res.send('🚀 Backend Kell está Online na Porta 3001!'));
+
+/* ===================== DEFINIÇÃO DAS ROTAS ===================== */
 app.use('/auth', authRoutes);
 app.use('/users', usersRoutes);
 app.use('/confeccoes', confeccaoRoutes);
@@ -82,34 +63,48 @@ app.use('/vale-pedido-sp', valePedidoSpRoutes);
 app.use('/clientes', clienteRoutes);
 app.use('/vendedores', vendedorRoutes);
 
-/* ===================== TRATAMENTO 404 ===================== */
-app.use((req, res) => {
-    console.warn(`[404] Rota inexistente: ${req.originalUrl}`);
-    res.status(404).json({ error: 'Rota não encontrada no backend' });
-});
-
-/* ===================== INICIALIZAÇÃO DO SERVIDOR ===================== */
+/* ===================== FUNÇÃO DE INICIALIZAÇÃO ===================== */
 async function startServer() {
     try {
-        // Testa a conexão com o banco antes de abrir a porta
+        console.log('--- [SISTEMA] CONECTANDO AO BANCO DE DADOS... ---');
         await sequelize.authenticate();
-        console.log('✅ Banco de Dados conectado via Sequelize.');
-        
-        // Importante: Escutando especificamente em 0.0.0.0
+        console.log('✅ Banco de Dados conectado com sucesso.');
+
         const server = app.listen(PORT, '0.0.0.0', () => {
+            // Detecção do IP da nova rede (Cabo/Ethernet)
+            const interfaces = os.networkInterfaces();
+            let networkIp = 'localhost';
+            
+            for (const name of Object.keys(interfaces)) {
+                for (const iface of interfaces[name]) {
+                    if (iface.family === 'IPv4' && !iface.internal) {
+                        networkIp = iface.address;
+                    }
+                }
+            }
+
             console.log(`\n==========================================`);
-            console.log(`🚀 SERVIDOR ONLINE`);
+            console.log(`🚀 SERVIDOR ONLINE - MODO REDE ATIVADO`);
             console.log(`🏠 LOCAL: http://localhost:${PORT}`);
-            console.log(`🌐 REDE:  http://192.168.10.15:${PORT}`);
+            console.log(`🌐 REDE:  http://${networkIp}:${PORT}`);
             console.log(`==========================================\n`);
         });
 
-        // Tratamento para evitar que o servidor "pendure" conexões
+        // Configurações de estabilidade
         server.keepAliveTimeout = 65000;
         server.headersTimeout = 66000;
 
+        // Tratamento de erro de porta ocupada
+        server.on('error', (err) => {
+            if (err.code === 'EADDRINUSE') {
+                console.error(`❌ Erro: A porta ${PORT} está sendo usada por outro processo.`);
+                console.error(`💡 Tente rodar: taskkill /F /IM node.exe /T ou mude a porta no código.`);
+                process.exit(1);
+            }
+        });
+
     } catch (error) {
-        console.error('❌ ERRO CRÍTICO NA INICIALIZAÇÃO:', error);
+        console.error('❌ ERRO AO INICIAR SERVIDOR:', error);
         process.exit(1);
     }
 }

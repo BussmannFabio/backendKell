@@ -32,7 +32,7 @@ async function resolveProduto(produtoIdOrCodigo, transaction = null) {
   return await Produto.findOne({ where: { codigo }, transaction });
 }
 
-// ---------------------- LISTAGEM (Otimizada) ----------------------
+// ---------------------- LISTAGEM ----------------------
 export const listarOrdens = async (req, res) => {
   try {
     const { status } = req.query;
@@ -41,11 +41,8 @@ export const listarOrdens = async (req, res) => {
     if (status === 'ABERTA') {
       where.status = { [Op.ne]: 'RETORNADA' };
     } else if (status && status !== 'undefined' && status !== 'null') {
-      // Se vier um status específico (ex: 'CRIADA'), filtra por ele
       where.status = status;
     }
-    // Se o status for vazio/undefined (como faremos no Angular), 
-    // o 'where' continua vazio {} e traz TODAS as ordens.
 
     const ordens = await OrdemServico.findAll({
       where,
@@ -77,6 +74,7 @@ export const listarOrdens = async (req, res) => {
     return res.status(500).json({ success: false, error: error.message });
   }
 };
+
 // ---------------------- CRIAR ORDEM ----------------------
 export const criarOrdem = async (req, res) => {
   const transaction = await sequelize.transaction();
@@ -156,12 +154,18 @@ export const criarOrdem = async (req, res) => {
   }
 };
 
-// ---------------------- RETORNAR ORDEM (FECHAMENTO) ----------------------
+// ---------------------- RETORNAR ORDEM (LÓGICA DE 2% BLINDADA) ----------------------
 export const retornarOrdem = async (req, res) => {
   const transaction = await sequelize.transaction();
   try {
     const { id } = req.params;
-    const { itens: itensRecebidos = [], retornoTotal = false, fecharSemQuantidade = false } = req.body;
+    const { 
+      itens: itensRecebidos = [], 
+      retornoTotal = false, 
+      fecharSemQuantidade = false,
+      isParcial = false,
+      status: statusFrontend 
+    } = req.body;
 
     const ordemServico = await OrdemServico.findByPk(id, {
       include: [{ model: OrdemItem, as: 'itens', include: [{ model: Produto, as: 'produto' }] }],
@@ -170,25 +174,28 @@ export const retornarOrdem = async (req, res) => {
 
     if (!ordemServico || ordemServico.status === 'RETORNADA') {
       if (transaction) await transaction.rollback();
-      return res.status(400).json({ success: false, error: 'Ordem inválida ou já retornada' });
+      return res.status(400).json({ success: false, error: 'Ordem inválida ou já encerrada.' });
     }
 
     let acumuladoRealFinal = 0;
 
     for (const itemOrdem of ordemServico.itens) {
       const itemFront = itensRecebidos.find(i => String(i.id) === String(itemOrdem.id));
-      const pecasPendenteNoItem = Number(itemOrdem.pecasEsperadas || 0);
       
-      let pecasSendoEntregues = 0;
-      if (itensRecebidos.length > 0) {
-        pecasSendoEntregues = Number(itemFront?.pecasRetornadas || 0);
+      const metaOriginalDoItem = Number(itemOrdem.volumes || 0) * Number(itemOrdem.pecasPorVolume || 0);
+      const pecasPendenteNoMomento = Number(itemOrdem.pecasEsperadas || 0);
+      
+      let pecasSendoEntreguesAgora = 0;
+      if (itemFront) {
+        pecasSendoEntreguesAgora = Number(itemFront.pecasRetornadas || 0);
       } else if (retornoTotal && !fecharSemQuantidade) {
-        pecasSendoEntregues = pecasPendenteNoItem;
+        pecasSendoEntreguesAgora = pecasPendenteNoMomento;
       }
 
       const defeitos = Number(itemFront?.pecasComDefeito || 0);
-      const pecasBoas = Math.max(pecasSendoEntregues - defeitos, 0);
-      const reducaoEstoqueAberto = (retornoTotal || fecharSemQuantidade) ? pecasPendenteNoItem : pecasSendoEntregues;
+      const pecasBoas = Math.max(pecasSendoEntreguesAgora - defeitos, 0);
+      
+      const reducaoEstoqueAberto = (retornoTotal || fecharSemQuantidade) ? pecasPendenteNoMomento : pecasSendoEntreguesAgora;
       
       let estoque = await EstoqueProduto.findOne({ where: { produtoTamanhoId: itemOrdem.produtoTamanhoId }, transaction });
       if (estoque) {
@@ -197,20 +204,38 @@ export const retornarOrdem = async (req, res) => {
         await estoque.save({ transaction });
       }
 
+      // Atualizar Item
       itemOrdem.pecasReais = Number(itemOrdem.pecasReais || 0) + pecasBoas;
       itemOrdem.pecasDefeituosas = Number(itemOrdem.pecasDefeituosas || 0) + defeitos;
-      itemOrdem.pecasEsperadas = (retornoTotal || fecharSemQuantidade) ? 0 : Math.max(pecasPendenteNoItem - reducaoEstoqueAberto, 0);
+      
+      if (retornoTotal || fecharSemQuantidade) {
+        itemOrdem.pecasEsperadas = 0;
+      } else {
+        itemOrdem.pecasEsperadas = Math.max(pecasPendenteNoMomento - reducaoEstoqueAberto, 0);
+      }
       await itemOrdem.save({ transaction });
 
-      const valorUnit = (Number(itemOrdem.produto?.valorMaoDeObraDuzia || 0)) / 12;
-      const valorLancamento = (pecasBoas + defeitos) * valorUnit;
+      // --- LÓGICA FINANCEIRA DE BÔNUS/ÔNUS (REGRA 2%) ---
+      const valorUnitario = (Number(itemOrdem.produto?.valorMaoDeObraDuzia || 0)) / 12;
+      const valorTrabalhoRealizado = (pecasBoas + defeitos) * valorUnitario;
+      
+      let saldoBonusOnus = 0;
+      // Só calculamos o bônus/ônus quando o item é finalizado (esperado chega a 0)
+      if (itemOrdem.pecasEsperadas === 0) {
+        const meta98PorCento = metaOriginalDoItem * 0.98;
+        const totalEntregue = itemOrdem.pecasReais + itemOrdem.pecasDefeituosas;
+        // Ex: 100 entregues - 98 meta = +2 bônus | 96 entregues - 98 meta = -2 ônus
+        saldoBonusOnus = totalEntregue - meta98PorCento;
+      }
 
-      if (valorLancamento > 0) {
+      if (valorTrabalhoRealizado > 0 || Math.abs(saldoBonusOnus) > 0) {
         await Financeiro.create({
           ordemId: id,
           confeccaoId: ordemServico.confeccaoId,
-          valorMaoDeObra: valorLancamento,
+          valorMaoDeObra: valorTrabalhoRealizado,
           pecasProduzidas: (pecasBoas + defeitos),
+          // Diferença positiva = bônus, Diferença negativa = ônus
+          diferenca: Math.round(saldoBonusOnus * 100) / 100,
           status: 'ABERTO'
         }, { transaction });
       }
@@ -218,17 +243,25 @@ export const retornarOrdem = async (req, res) => {
       acumuladoRealFinal += itemOrdem.pecasReais;
     }
 
-    const todosItensEntregues = (ordemServico.itens.every(i => Number(i.pecasEsperadas) <= 0));
-    
-    await ordemServico.update({
-      status: todosItensEntregues ? 'RETORNADA' : 'EM_PRODUCAO',
-      dataRetorno: todosItensEntregues ? formatDateToYYYYMMDD(new Date()) : null,
+    // Status da Ordem
+    let novoStatus = 'EM_PRODUCAO';
+    if (statusFrontend === 'RETORNADA' || retornoTotal || fecharSemQuantidade) {
+      novoStatus = 'RETORNADA';
+    } else {
+      const itensAbertos = await OrdemItem.count({ where: { ordemId: id, pecasEsperadas: { [Op.gt]: 0 } }, transaction });
+      novoStatus = itensAbertos === 0 ? 'RETORNADA' : 'EM_PRODUCAO';
+    }
+
+    await OrdemServico.update({
+      status: novoStatus,
+      dataRetorno: novoStatus === 'RETORNADA' ? formatDateToYYYYMMDD(new Date()) : null,
       totalPecasReais: acumuladoRealFinal,
+      // Diferença de peças geral da OS contra meta 100%
       diferencaPecas: acumuladoRealFinal - Number(ordemServico.totalPecasEsperadas || 0)
-    }, { transaction });
+    }, { where: { id }, transaction });
 
     await transaction.commit();
-    return res.json({ success: true });
+    return res.json({ success: true, status: novoStatus });
   } catch (error) {
     if (transaction) await transaction.rollback();
     console.error('[ORDEM][RETORNO] Erro:', error);
@@ -252,20 +285,19 @@ export const reabrirOrdem = async (req, res) => {
     }
 
     for (const item of ordem.itens) {
-      const pecasReaisDesteItem = Number(item.pecasReais || 0);
-      
+      const pecasProduzidas = Number(item.pecasReais || 0);
       const estoque = await EstoqueProduto.findOne({ 
         where: { produtoTamanhoId: item.produtoTamanhoId }, 
         transaction 
       });
       
       if (estoque) {
-        estoque.quantidadePronta = Math.max(Number(estoque.quantidadePronta || 0) - pecasReaisDesteItem, 0);
-        estoque.quantidadeAberta = Number(estoque.quantidadeAberta || 0) + pecasReaisDesteItem;
+        estoque.quantidadePronta = Math.max(Number(estoque.quantidadePronta || 0) - pecasProduzidas, 0);
+        estoque.quantidadeAberta = Number(estoque.quantidadeAberta || 0) + pecasProduzidas;
         await estoque.save({ transaction });
       }
 
-      item.pecasEsperadas = Number(item.pecasEsperadas || 0) + pecasReaisDesteItem;
+      item.pecasEsperadas = Number(item.pecasEsperadas || 0) + pecasProduzidas;
       item.pecasReais = 0;
       item.pecasDefeituosas = 0;
       await item.save({ transaction });

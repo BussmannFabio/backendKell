@@ -1,4 +1,3 @@
-// controllers/financeiro-controller.js
 import { Financeiro, OrdemServico, OrdemItem, Produto, Confeccao } from '../models/index.js';
 import { Op } from 'sequelize';
 
@@ -113,132 +112,90 @@ export const atualizarStatusFinanceiro = async (req, res) => {
   }
 };
 
-/**
- * Gerar relatório financeiro COM AUDITORIA DE QUEBRA (2.5%)
- */
+
+// ---------------------- RELATÓRIO COM AUDITORIA DE 2% ----------------------
 export const relatorioGerar = async (req, res) => {
   try {
     const { ordemIds } = req.body;
     if (!Array.isArray(ordemIds) || ordemIds.length === 0) {
-      return res.status(400).json({ success: false, error: 'Informe ordemIds: array de ids.' });
+      return res.status(400).json({ success: false, error: 'Informe ordemIds.' });
     }
 
-    // 1. Buscar ordens e seus nomes de confecção
     const ordens = await OrdemServico.findAll({
       where: { id: { [Op.in]: ordemIds } },
       include: [{ model: Confeccao, as: 'confeccao', attributes: ['id', 'nome'] }]
     });
 
-    // 2. Buscar itens das ordens INCLUINDO pecasEsperadas para comparar com pecasReais
     const itens = await OrdemItem.findAll({
       where: { ordemId: { [Op.in]: ordemIds } },
-      attributes: ['id', 'ordemId', 'produtoId', 'pecasReais', 'pecasEsperadas']
+      attributes: ['ordemId', 'produtoId', 'pecasReais', 'pecasDefeituosas', 'volumes', 'pecasPorVolume']
     });
 
-    if (!itens || itens.length === 0) {
-      return res.json({ success: true, report: [] });
-    }
-
-    // 3. Mapear preços dos produtos (valor por dúzia)
-    const produtoIds = Array.from(new Set(itens.map(i => i.produtoId).filter(Boolean)));
-    const produtos = await Produto.findAll({
-      where: { id: { [Op.in]: produtoIds } },
-      attributes: ['id', 'valorMaoDeObraDuzia']
-    });
-    const produtoMap = {};
-    produtos.forEach(p => { 
-      produtoMap[String(p.id)] = Number(p.valorMaoDeObraDuzia || 0); 
-    });
+    const produtoIds = [...new Set(itens.map(i => i.produtoId))];
+    const produtos = await Produto.findAll({ where: { id: { [Op.in]: produtoIds } } });
+    const produtoMap = Object.fromEntries(produtos.map(p => [p.id, Number(p.valorMaoDeObraDuzia || 0)]));
 
     const groups = {};
 
-    // 4. Processar itens e agrupar por Oficina/Confecção
     for (const it of itens) {
       const ordem = ordens.find(o => o.id === it.ordemId);
-      const confId = ordem?.confeccaoId ?? 'null';
-      const confNome = ordem?.confeccao?.nome ?? 'Sem confecção';
+      const confId = ordem?.confeccaoId || 'null';
+      
+      const esperado100 = Number(it.volumes || 0) * Number(it.pecasPorVolume || 0);
+      const realProduzido = Number(it.pecasReais || 0) + Number(it.pecasDefeituosas || 0);
+      const valorTotalItem = (realProduzido / 12) * (produtoMap[it.produtoId] || 0);
 
-      const esperado = Number(it.pecasEsperadas || 0);
-      const real = Number(it.pecasReais || 0);
-      const valorMaoDeObra = (real / 12) * (produtoMap[String(it.produtoId)] || 0);
-
-      const key = String(confId);
-      if (!groups[key]) {
-        groups[key] = {
-          confeccaoId: confId === 'null' ? null : confId,
-          confeccaoNome: confNome,
-          totalPecasEsperadas: 0,
-          totalPecasProduzidas: 0,
+      if (!groups[confId]) {
+        groups[confId] = {
+          confeccaoNome: ordem?.confeccao?.nome || 'Sem confecção',
+          totalEsperado: 0,
+          totalReal: 0,
           totalValor: 0,
-          ordensCount: 0,
-          ordensIdsSet: new Set(),
-          ordensDetalhadas: {} // Usado para agrupar itens por Ordem dentro da mesma oficina
+          ordensDetalhadas: {}
         };
       }
 
-      const g = groups[key];
-      g.totalPecasEsperadas += esperado;
-      g.totalPecasProduzidas += real;
-      g.totalValor += valorMaoDeObra;
-      g.ordensIdsSet.add(it.ordemId);
+      const g = groups[confId];
+      g.totalEsperado += esperado100;
+      g.totalReal += realProduzido;
+      g.totalValor += valorTotalItem;
 
-      // Agrupamento detalhado por Ordem para o PDF
       if (!g.ordensDetalhadas[it.ordemId]) {
-        g.ordensDetalhadas[it.ordemId] = {
-          ordemId: it.ordemId,
-          esperado: 0,
-          real: 0,
-          valor: 0
-        };
+        g.ordensDetalhadas[it.ordemId] = { ordemId: it.ordemId, esperado: 0, real: 0, valor: 0 };
       }
-      g.ordensDetalhadas[it.ordemId].esperado += esperado;
-      g.ordensDetalhadas[it.ordemId].real += real;
-      g.ordensDetalhadas[it.ordemId].valor += valorMaoDeObra;
+      g.ordensDetalhadas[it.ordemId].esperado += esperado100;
+      g.ordensDetalhadas[it.ordemId].real += realProduzido;
+      g.ordensDetalhadas[it.ordemId].valor += valorTotalItem;
     }
 
-    // 5. Finalizar cálculos (Margem de 2.5%, Inconsistências e Formatação)
     const report = Object.values(groups).map(g => {
-      const listaOrdens = Object.values(g.ordensDetalhadas).map(o => {
-        const margemOrdem = o.esperado * 0.975; // 100% - 2.5%
+      const detalhe = Object.values(g.ordensDetalhadas).map(o => {
+        const meta98 = o.esperado * 0.98;
+        const saldo = o.real - meta98; // Positivo = Bônus, Negativo = Ônus
         return {
           ...o,
-          margem: Math.round((margemOrdem + Number.EPSILON) * 100) / 100,
-          falta: o.real < margemOrdem ? (margemOrdem - o.real) : 0
+          margem: Math.round(meta98 * 100) / 100,
+          falta: Math.round(saldo * 100) / 100 // Agora reflete o saldo real
         };
       });
 
-      const totalEsperado = g.totalPecasEsperadas;
-      const totalComMargem = totalEsperado * 0.975;
-      const inconsistenciaGeral = g.totalPecasProduzidas < totalComMargem ? (totalComMargem - g.totalPecasProduzidas) : 0;
+      const metaGeral98 = g.totalEsperado * 0.98;
 
       return {
-        confeccaoId: g.confeccaoId,
         confeccaoNome: g.confeccaoNome,
-        totalPecasEsperadas: Math.round(totalEsperado),
-        totalPecasComMargem: Math.round((totalComMargem + Number.EPSILON) * 100) / 100,
-        totalPecasProduzidas: Math.round(g.totalPecasProduzidas),
-        totalDuzias: Math.round((g.totalPecasProduzidas / 12 + Number.EPSILON) * 100) / 100,
-        totalValor: Math.round((g.totalValor + Number.EPSILON) * 100) / 100,
-        ordensCount: g.ordensIdsSet.size,
-        inconsistencias: Math.round((inconsistenciaGeral + Number.EPSILON) * 100) / 100,
-        ordensDetalhadas: listaOrdens
+        totalPecasEsperadas: g.totalEsperado,
+        totalPecasComMargem: Math.round(metaGeral98 * 100) / 100,
+        totalPecasProduzidas: g.totalReal,
+        totalValor: Math.round(g.totalValor * 100) / 100,
+        // Inconsistência = Saldo Líquido da Oficina
+        inconsistencias: Math.round((g.totalReal - metaGeral98) * 100) / 100,
+        ordensDetalhadas: detalhe
       };
     });
 
-    report.sort((a, b) => (a.confeccaoNome).localeCompare(b.confeccaoNome));
-
-    // Totais gerais para o rodapé do sistema
-    const totals = report.reduce((acc, cur) => {
-      acc.totalPecasProduzidas += cur.totalPecasProduzidas;
-      acc.totalValor += cur.totalValor;
-      acc.totalOrdens += cur.ordensCount;
-      acc.totalInconsistencias += cur.inconsistencias;
-      return acc;
-    }, { totalPecasProduzidas: 0, totalValor: 0, totalOrdens: 0, totalInconsistencias: 0 });
-
-    return res.json({ success: true, report, totals });
+    return res.json({ success: true, report });
   } catch (error) {
-    console.error('[FINANCEIRO][RELATORIO-GERAR][ERRO]', error);
+    console.error('[FINANCEIRO][RELATORIO] Erro:', error);
     return res.status(500).json({ success: false, error: error.message });
   }
 };
