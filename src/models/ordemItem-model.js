@@ -12,6 +12,7 @@ OrdemItem.init({
   pecasPorVolume: { type: DataTypes.INTEGER, allowNull: false },
   pecasEsperadas: { type: DataTypes.INTEGER, allowNull: false },
   pecasReais: { type: DataTypes.INTEGER, allowNull: true },
+  pecasDefeituosas: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
   corte: { type: DataTypes.STRING(20), allowNull: false }
 }, {
   sequelize,

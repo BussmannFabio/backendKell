@@ -3,529 +3,439 @@ import {
     ValePedidoItemSp,
     ProdutoTamanho,
     Produto,
+    Vendedor,
     sequelize,
 } from '../models/index.js';
 
-// Assumindo que o 'estoque-controller.js' exporta darBaixaEstoquePadrao E retornarEstoquePadrao
 import { darBaixaEstoquePadrao, retornarEstoquePadrao } from './estoque-controller.js';
-// Importamos as funções de Baixa e a nova função de Retorno (Estorno) para SP
-import { darBaixaEstoqueSp, retornarEstoqueSp } from './carga-controller.js'; 
+import { darBaixaEstoqueSp, retornarEstoqueSp } from './carga-controller.js';
 
 /* =======================================================================
-    🔍 BUSCAR PRODUTO COMPLETO (Produto + Tamanhos)
-    ROTA FINAL: GET /vale-pedido-sp/produto/:codigo
+    🔍 AUXILIAR: VERIFICAÇÃO DE CIDADE (SÃO PAULO / SP)
 ======================================================================= */
-const buscarProdutoCompleto = async (req, res) => {
-    console.log(`[VALE-SP] Buscar produto: ${req.params.codigo}`);
-
-    try {
-        const { codigo } = req.params;
-
-        // 1. Buscar o Produto pelo código
-        const produto = await Produto.findOne({ where: { codigo } });
-
-        if (!produto) {
-            console.log(`[VALE-SP] Produto com código ${codigo} não encontrado.`);
-            return res.status(404).json({ error: 'Produto não encontrado' });
-        }
-
-        // 🟢 DEBUG EXTRA: Confirma que o ID é válido antes da próxima consulta
-        console.log(`[VALE-SP] ID do Produto Encontrado: ${produto.id}`);
-
-        // 2. Buscar todos os tamanhos associados ao produto.
-        const tamanhos = await ProdutoTamanho.findAll({
-            where: { produtoId: produto.id }
-        });
-
-
-        console.log(`[VALE-SP] Produto ${codigo} (ID: ${produto.id}) encontrado com ${tamanhos.length} tamanhos.`);
-
-        // 3. Retornar os dados consolidados
-        return res.json({
-            id: produto.id,
-            codigo: produto.codigo,
-            descricao: produto.descricao,
-            precoVendaPeca: produto.precoVendaPeca,
-            precoVendaDuzia: produto.precoVendaDuzia,
-            tamanhos // Array de ProdutoTamanhoDTOs
-        });
-
-    } catch (error) {
-        // ❌ LOG CRÍTICO PARA CAPTURAR ERROS DO SEQUELIZE
-        console.error('❌ ERRO CRÍTICO buscarProdutoCompleto:', error.stack || error);
-
-        // Retorna 500 se o backend falhar (ex: erro de DB)
-        res.status(500).json({
-            error: 'Erro interno ao buscar produto',
-            detalhe: error.message
-        });
-    }
-}
+const isCidadeSaoPaulo = (cidade) => {
+    if (!cidade) return false;
+    const normalized = cidade.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+    return normalized === 'SAO PAULO' || normalized === 'SP';
+};
 
 /* =======================================================================
-    📝 CRIAR VALE PEDIDO SP (com transação e BAIXA DE ESTOQUE)
+    🔍 BUSCAR PEDIDO POR ID
+======================================================================= */
+const buscarPedidoPorId = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const pedido = await ValePedidoSp.findByPk(id, {
+            include: [{
+                model: ValePedidoItemSp,
+                as: 'itens',
+                include: [{ 
+                    model: ProdutoTamanho, 
+                    as: 'produtoTamanho',
+                    include: [{ model: Produto, as: 'produto' }] 
+                }]
+            }]
+        });
+
+        if (!pedido) return res.status(404).json({ error: 'Pedido não encontrado.' });
+
+        const data = pedido.toJSON();
+        data.itens = data.itens.map(it => ({
+            ...it,
+            produtoTamanhoId: it.produtoTamanhoId
+        }));
+
+        return res.json(data);
+    } catch (error) {
+        console.error('❌ Erro buscarPedidoPorId:', error);
+        res.status(500).json({ error: 'Erro interno ao buscar detalhes do pedido.' });
+    }
+};
+
+/* =======================================================================
+    📝 CRIAR ROMANEIO OU VALE DIRETO (BAIXA IMEDIATA)
 ======================================================================= */
 const criarValePedidoSp = async (req, res) => {
-    console.log(`[VALE-SP] Criando vale…`);
-    
-    const {
-        cliente,
-        endereco,
-        vendedor,
-        parcelas,
-        dataInicialPagamento,
-        cidadeSeparacao,
-        valorBruto,
-        descontoPorcento,
-        precoTotal,
-        volumes
-    } = req.body || {};
+    const t = await sequelize.transaction();
+    try {
+        const {
+            cliente, endereco, vendedorId, parcelas,
+            dataInicialPagamento, cidadeSeparacao,
+            descontoPorcento, volumes, status 
+        } = req.body;
 
-    let itens = req.body?.itens ?? req.body?.items;
+        let itensRaw = req.body?.itens ?? req.body?.items;
+        if (typeof itensRaw === 'string') itensRaw = JSON.parse(itensRaw);
 
-    if (typeof itens === 'string') {
-        try {
-            itens = JSON.parse(itens);
-        } catch (err) {
-            console.warn('[VALE-SP] Falha ao parsear itens stringificados:', err.message);
+        if (!cliente || !Array.isArray(itensRaw) || itensRaw.length === 0) {
+            if (!t.finished) await t.rollback();
+            return res.status(400).json({ error: 'Dados obrigatórios ou itens ausentes.' });
         }
-    }
 
-    if (!cliente || !endereco) {
-        return res.status(400).json({ error: 'cliente e endereco são obrigatórios' });
-    }
+        let nomeVendedor = "Não Informado";
+        if (vendedorId) {
+            const v = await Vendedor.findByPk(vendedorId);
+            if (v) nomeVendedor = v.nome;
+        }
 
-    if (!Array.isArray(itens) || itens.length === 0) {
-        console.error('[VALE-SP] Payload inválido: "itens" vazio ou não é array');
-        return res.status(400).json({ error: 'Adicione ao menos um item válido ao pedido' });
-    }
+        let acumuladorBruto = 0;
+        const itensProcessados = itensRaw.map(item => {
+            const qtdDz = Number(item.quantidade) || 0;
+            const precoDz = Number(item.precoUnitario) || 0; 
+            const subtotal = Number((qtdDz * precoDz).toFixed(2));
+            acumuladorBruto += subtotal;
+            return { ...item, subtotal, precoDz };
+        });
 
+        const descPerc = Number(descontoPorcento) || 0;
+        const precoTotalFinal = acumuladorBruto * (1 - (descPerc / 100));
+        const statusFinal = status || 'ROMANEIO';
+
+        const vale = await ValePedidoSp.create({
+            cliente, endereco, vendedor: nomeVendedor,
+            parcelas, dataInicialPagamento, cidadeSeparacao,
+            valorBruto: Number(acumuladorBruto.toFixed(2)),
+            descontoPorcento: descPerc,
+            precoTotal: Number(precoTotalFinal.toFixed(2)),
+            volumes: Number(volumes) || 1,
+            status: statusFinal,
+            dataFinalizacao: statusFinal === 'FINALIZADO' ? new Date() : null
+        }, { transaction: t });
+
+        const itensParaBaixa = [];
+        for (const item of itensProcessados) {
+            await ValePedidoItemSp.create({
+                valePedidoSpId: vale.id,
+                produtoTamanhoId: item.produtoTamanhoId,
+                quantidadePedida: item.quantidade,
+                quantidade: item.quantidade, 
+                precoUnitario: item.precoDz, 
+                subtotal: item.subtotal
+            }, { transaction: t });
+
+            itensParaBaixa.push({
+                produtoTamanhoId: item.produtoTamanhoId,
+                quantidade: item.quantidade
+            });
+        }
+
+        // DESCONTA ESTOQUE SEMPRE (Independente do status, para reservar o produto)
+        try {
+            if (isCidadeSaoPaulo(cidadeSeparacao)) {
+                await darBaixaEstoqueSp(itensParaBaixa, t);
+            } else {
+                await darBaixaEstoquePadrao(itensParaBaixa, t);
+            }
+        } catch (estError) {
+            throw new Error(`Estoque insuficiente para criar o pedido: ${estError.message}`);
+        }
+
+        await t.commit();
+        return res.json({ message: 'Pedido criado e estoque reservado!', id: vale.id });
+    } catch (error) {
+        if (!t.finished) await t.rollback();
+        console.error('❌ Erro criarValePedidoSp:', error);
+        return res.status(500).json({ error: error.message });
+    }
+};
+
+/* =======================================================================
+    ✅ FINALIZAR PEDIDO (AJUSTADO PARA CONTROLE DE RESERVA)
+======================================================================= */
+const finalizarValePedidoSp = async (req, res) => {
+    const { id } = req.params;
+    const { itens, volumes } = req.body; 
     const t = await sequelize.transaction();
 
     try {
-        // 1. Criação do Vale Pedido
-        const vale = await ValePedidoSp.create(
-            {
-                cliente,
-                endereco,
-                vendedor,
-                parcelas,
-                dataInicialPagamento,
-                cidadeSeparacao,
-                valorBruto: typeof valorBruto !== 'undefined' ? valorBruto : null,
-                descontoPorcento: typeof descontoPorcento !== 'undefined' ? descontoPorcento : null,
-                precoTotal: typeof precoTotal !== 'undefined' ? precoTotal : null,
-                volumes: typeof volumes !== 'undefined' ? volumes : null
-            },
-            { transaction: t }
-        );
+        const vale = await ValePedidoSp.findByPk(id, { transaction: t, lock: t.LOCK.UPDATE });
+        if (!vale) throw new Error('Pedido não encontrado.');
 
-        // Array de itens formatados para o banco de dados (e para baixa de estoque)
-        const itensParaBaixa = [];
+        const isSP = isCidadeSaoPaulo(vale.cidadeSeparacao);
 
-        for (const item of itens) {
-            if (!item || (typeof item.produtoTamanhoId !== 'number')) {
-                throw new Error('Item inválido: produtoTamanhoId ausente ou não é número');
-            }
+        // 1. ESTORNO OBRIGATÓRIO: Como a criação já baixou o estoque,
+        // precisamos devolver o que estava reservado para re-processar o conferido.
+        const itensAtuaisNoDb = await ValePedidoItemSp.findAll({ where: { valePedidoSpId: id }, transaction: t });
+        const itensParaRetorno = itensAtuaisNoDb.map(i => ({ 
+            produtoTamanhoId: i.produtoTamanhoId, 
+            quantidade: i.quantidade 
+        }));
+        
+        if (itensParaRetorno.length > 0) {
+            try {
+                if (isSP) {
+                    await retornarEstoqueSp(itensParaRetorno, t);
+                } else {
+                    await retornarEstoquePadrao(itensParaRetorno, t);
+                }
+            } catch (err) { console.warn('⚠️ Erro no Estorno de finalização:', err.message); }
+        }
 
-            const quantidade = Number(item.quantidade) || 0;
-            const precoUnitario = Number(item.precoUnitario) || 0;
-            const subtotal = Number(item.subtotal) || Number((quantidade * precoUnitario).toFixed(2));
+        // 2. Atualiza Itens com as novas quantidades conferidas
+        const itensParaBaixaDefinitiva = [];
+        let novoValorBruto = 0;
+        const listaItens = Array.isArray(itens) ? itens : [];
 
-            // Cria o item no banco de dados
-            await ValePedidoItemSp.create(
-                {
-                    valePedidoSpId: vale.id,
-                    produtoTamanhoId: item.produtoTamanhoId,
-                    quantidade, // Quantidade em DÚZIA
-                    precoUnitario,
-                    subtotal
-                },
-                { transaction: t }
-            );
-
-            // Coleta os dados para a baixa de estoque
-            itensParaBaixa.push({
-                produtoTamanhoId: item.produtoTamanhoId,
-                quantidade: quantidade // Quantidade em DÚZIA
+        for (const itemConf of listaItens) {
+            const itemDb = await ValePedidoItemSp.findOne({
+                where: { valePedidoSpId: id, produtoTamanhoId: itemConf.produtoTamanhoId },
+                transaction: t
             });
-        }
 
-        // 2. Lógica Condicional da Baixa de Estoque
-        if (itensParaBaixa.length > 0) {
-            
-            // Normaliza a string da cidade removendo espaços e comparando em maiúsculas
-            const cidadeNormalizada = cidadeSeparacao?.toUpperCase()?.trim();
-            
-            const isEstoqueSp = cidadeNormalizada === 'SÃO PAULO' || cidadeNormalizada === 'SP';
+            if (itemDb) {
+                const qtdDz = Number(itemConf.quantidade) || 0;
+                const precoDz = Number(itemDb.precoUnitario) || 0; 
+                const subtotal = Number((qtdDz * precoDz).toFixed(2));
 
-            if (isEstoqueSp) {
-                console.log(`[BAIXA OK] Selecionado ESTOQUE SP (Carga) para o Pedido #${vale.id}`);
-                await darBaixaEstoqueSp(itensParaBaixa, t); 
-                
-            } else if (cidadeNormalizada === 'GUARATINGUETÁ' || cidadeNormalizada === 'GUA') {
-                console.log(`[BAIXA OK] Selecionado ESTOQUE PADRÃO (Guaratinguetá) para o Pedido #${vale.id}`);
-                await darBaixaEstoquePadrao(itensParaBaixa, t); 
-                
-            } else {
-                 console.warn(`[BAIXA ALERTA] Cidade de separação '${cidadeSeparacao}' não reconhecida. Nenhuma baixa de estoque aplicada.`);
+                itemDb.quantidade = qtdDz;
+                itemDb.subtotal = subtotal;
+                await itemDb.save({ transaction: t });
+
+                if (qtdDz > 0) {
+                    novoValorBruto += subtotal;
+                    itensParaBaixaDefinitiva.push({ 
+                        produtoTamanhoId: itemDb.produtoTamanhoId, 
+                        quantidade: qtdDz 
+                    });
+                }
             }
-        } else {
-            console.warn(`[BAIXA ALERTA] Pedido #${vale.id} criado SEM itens para baixa.`);
         }
 
+        // 3. Baixa de Estoque Definitiva (conforme conferido)
+        if (itensParaBaixaDefinitiva.length > 0) {
+            try {
+                if (isSP) {
+                    await darBaixaEstoqueSp(itensParaBaixaDefinitiva, t);
+                } else {
+                    await darBaixaEstoquePadrao(itensParaBaixaDefinitiva, t);
+                }
+            } catch (stockError) {
+                throw new Error(`Estoque insuficiente na conferência: ${stockError.message}`);
+            }
+        }
+
+        // 4. ATUALIZAÇÃO DO STATUS E TOTAIS
+        const descPerc = Number(vale.descontoPorcento) || 0;
+        const valorBrutoFinal = Number(novoValorBruto.toFixed(2));
+        const valorComDesconto = Number((valorBrutoFinal * (1 - (descPerc / 100))).toFixed(2));
+
+        await vale.update({
+            status: 'FINALIZADO',
+            valorBruto: valorBrutoFinal,
+            precoTotal: valorComDesconto,
+            volumes: Number(volumes) || vale.volumes,
+            dataFinalizacao: new Date()
+        }, { transaction: t });
 
         await t.commit();
-
-        console.log(`[VALE-SP] Vale registrado e Estoque debitado #${vale.id}`);
-        return res.json({ message: 'Vale registrado e Estoque debitado!', id: vale.id });
+        res.json({ message: 'Pedido finalizado e estoque ajustado!', id: vale.id });
 
     } catch (error) {
-        await t.rollback();
-        console.error('Erro criarValePedidoSp:', error);
-
-        let errorMessage = error.message;
-        
-        if (errorMessage.includes('Estoque insuficiente') || errorMessage.includes('não encontrado')) {
-            // Mantém a mensagem detalhada se vier da função de baixa de estoque
-        } else {
-            errorMessage = 'Erro ao criar vale e dar baixa no estoque';
-        }
-
-        return res.status(500).json({ error: errorMessage, detalhe: error.message });
+        if (t && !t.finished) await t.rollback();
+        console.error('❌ ERRO NA FINALIZAÇÃO:', error.message);
+        res.status(500).json({ error: error.message });
     }
-}
+};
 
 /* =======================================================================
-    📋 LISTAR VALES
-======================================================================= */
-const listarValesPedidoSp = async (req, res) => {
-    console.log('[VALE-SP] Listando vales…');
-
-    try {
-        const vales = await ValePedidoSp.findAll({
-            // Selecionamos apenas os campos necessários para a listagem inicial do frontend
-            attributes: ['id', 'cliente', 'precoTotal', 'createdAt'],
-            order: [['id', 'DESC']]
-        });
-
-        return res.json(vales ?? []);
-
-    } catch (error) {
-        console.error('Erro listarValesPedidoSp:', error);
-        res.status(500).json({ error: 'Erro ao listar vales', detalhe: error.message });
-    }
-}
-
-/* =======================================================================
-    🗑️ DELETAR VALE (Com Retorno de Estoque - Estratégia Duas Buscas)
+    🗑️ DELETAR PEDIDO (DEVOLUÇÃO DE ESTOQUE GARANTIDA)
 ======================================================================= */
 const deletarValePedidoSp = async (req, res) => {
     const { id } = req.params;
-
-    console.log(`[VALE-SP] Deletando vale #${id} e estornando estoque...`);
-
+    const t = await sequelize.transaction();
     try {
-        await sequelize.transaction(async (t) => {
-            
-            // 1. BUSCAR E TRAVAR APENAS O VALE PRINCIPAL
-            const vale = await ValePedidoSp.findByPk(id, {
-                transaction: t, 
-                lock: t.LOCK.UPDATE // Trava a tabela ValePedidoSp
-            });
+        const vale = await ValePedidoSp.findByPk(id, { 
+            include: [{ model: ValePedidoItemSp, as: 'itens' }],
+            transaction: t 
+        });
 
-            if (!vale) {
-                return res.status(404).json({ error: 'Vale pedido não encontrado para exclusão' });
-            }
-            
-            // 2. BUSCAR ITENS SEPARADAMENTE (sem lock de JOIN, que causava o erro anterior)
-            const itensDoVale = await ValePedidoItemSp.findAll({
-                where: { valePedidoSpId: id },
-                attributes: ['produtoTamanhoId', 'quantidade'], // ID do produto e a quantidade (dúzia)
-                transaction: t // Inclui na transação
-            });
-            
-            // 3. Coletar itens para estorno
-            const itensParaRetorno = itensDoVale.map(item => ({
-                produtoTamanhoId: item.produtoTamanhoId,
-                quantidade: item.quantidade // Quantidade em DÚZIA
+        if (!vale) {
+            if (!t.finished) await t.rollback();
+            return res.status(404).json({ error: 'Não encontrado' });
+        }
+
+        // DEVOLVE ESTOQUE SEMPRE (Seja Romaneio ou Finalizado)
+        if (vale.itens?.length > 0) {
+            const itensParaRetorno = vale.itens.map(i => ({ 
+                produtoTamanhoId: i.produtoTamanhoId, 
+                quantidade: i.quantidade 
             }));
 
-            // 4. Lógica de Estorno de Estoque
-            if (itensParaRetorno.length > 0) {
-                const cidadeSeparacao = vale.cidadeSeparacao;
-                const cidadeNormalizada = cidadeSeparacao?.toUpperCase()?.trim();
-                
-                const isEstoqueSp = cidadeNormalizada === 'SÃO PAULO' || cidadeNormalizada === 'SP';
-
-                if (isEstoqueSp) {
-                    console.log(`[ESTORNO OK] Retornando itens para ESTOQUE SP.`);
-                    // A função retornarEstoqueSp lida com o lock dentro dela
-                    await retornarEstoqueSp(itensParaRetorno, t); 
+            try {
+                if (isCidadeSaoPaulo(vale.cidadeSeparacao)) {
+                    await retornarEstoqueSp(itensParaRetorno, t);
                 } else {
-                    console.log(`[ESTORNO OK] Retornando itens para ESTOQUE PADRÃO (Guaratinguetá).`);
-                    // A função retornarEstoquePadrao lida com o lock dentro dela
-                    await retornarEstoquePadrao(itensParaRetorno, t); 
+                    await retornarEstoquePadrao(itensParaRetorno, t);
                 }
-            } else {
-                 console.warn(`[ESTORNO ALERTA] Pedido #${id} não tinha itens para estornar o estoque.`);
+            } catch (e) { 
+                console.warn('⚠️ Erro ao repor estoque no delete:', e.message); 
             }
+        }
 
-            // 5. Deletar os itens e o vale principal (DEPOIS de estornar o estoque)
-            await ValePedidoItemSp.destroy({ where: { valePedidoSpId: id }, transaction: t });
-            await ValePedidoSp.destroy({ where: { id }, transaction: t });
-            
-            console.log(`[VALE-SP] Vale #${id} deletado e estoque estornado com sucesso.`);
-        });
+        await ValePedidoItemSp.destroy({ where: { valePedidoSpId: id }, transaction: t });
+        await ValePedidoSp.destroy({ where: { id }, transaction: t });
 
-        res.json({ message: 'Vale deletado e estoque estornado com sucesso!' });
-
+        await t.commit();
+        return res.json({ message: 'Pedido excluído e estoque devolvido!', id });
     } catch (error) {
-        // O rollback é tratado implicitamente pelo sequelize.transaction se houver erro
-        console.error('Erro deletarValePedidoSp e estorno de estoque:', error);
-        res.status(500).json({ error: 'Erro ao deletar vale e estornar estoque', detalhe: error.message });
+        if (!t.finished) await t.rollback();
+        console.error(`❌ Erro deletar:`, error.message);
+        return res.status(500).json({ error: error.message });
     }
-}
-
+};
 
 /* =======================================================================
-    📄 GERAR RELATÓRIO (FORMATO 1/4 A4 E DUAS VIAS)
+    📋 LISTAGEM E RELATÓRIOS
 ======================================================================= */
-const gerarRelatorioValePedido = async (req, res) => {
-    const pedidoId = req.params.id;
-    console.log(`[RELATORIO] Tentativa de geração para o Pedido ID: ${pedidoId}`);
-
+const listarValesPedidoSp = async (req, res) => {
     try {
-        // 1. Buscar o pedido principal com todos os detalhes aninhados
-        const pedido = await ValePedidoSp.findByPk(pedidoId, {
-            include: [
-                {
-                    model: ValePedidoItemSp,
-                    as: 'itens',
-                    required: true,
-                    include: [
-                        {
-                            model: ProdutoTamanho,
-                            as: 'produtoTamanho',
-                            include: [
-                                {
-                                    model: Produto,
-                                    as: 'produto'
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
+        const vales = await ValePedidoSp.findAll({
+            attributes: ['id', 'cliente', 'vendedor', 'precoTotal', 'status', 'createdAt', 'volumes'],
+            order: [['id', 'DESC']]
         });
-
-        if (!pedido) {
-            console.warn(`[RELATORIO] Pedido #${pedidoId} não encontrado.`);
-            return res.status(404).json({ error: `Pedido #${pedidoId} não encontrado.` });
-        }
-
-        // 2. Montar o HTML do Relatório (Duas Vias, 1/4 A4)
-        const htmlRelatorio = criarTemplateHtmlRelatorio(pedido);
-
-        // 3. Enviar o HTML
-        res.setHeader('Content-Type', 'text/html');
-        res.setHeader('Content-Disposition', `inline; filename="relatorio-pedido-${pedidoId}.html"`);
-
-        return res.status(200).send(htmlRelatorio);
-
+        return res.json(vales);
     } catch (error) {
-        console.error(`Erro gerarRelatorioValePedido #${pedidoId}:`, error);
-        return res.status(500).send({ message: 'Falha interna ao gerar o relatório.', detalhe: error.message });
+        res.status(500).json({ error: 'Erro ao listar pedidos.' });
     }
-}
+};
 
-/**
- * Função utilitária para montar a estrutura HTML do relatório (DUAS VIAS, 1/4 A4)
- * @param {object} pedido Objeto ValePedidoSp com seus includes
- * @returns {string} O HTML completo
- */
-function criarTemplateHtmlRelatorio(pedido) {
-    const formatDate = (date) => new Date(date).toLocaleDateString('pt-BR');
+const buscarProdutoCompleto = async (req, res) => {
+    try {
+        const produto = await Produto.findOne({ 
+            where: { codigo: req.params.codigo },
+            include: [{ model: ProdutoTamanho, as: 'tamanhos' }]
+        });
+        if (!produto) return res.status(404).json({ error: 'Não encontrado' });
+        return res.json(produto);
+    } catch (error) {
+        res.status(500).json({ error: 'Erro na busca' });
+    }
+};
 
-    const currencyFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-    const formatCurrency = (value) => currencyFormatter.format(value);
+const gerarRelatorioRomaneio = async (req, res) => {
+    try {
+        const pedido = await ValePedidoSp.findByPk(req.params.id, {
+            include: [{
+                model: ValePedidoItemSp, as: 'itens',
+                include: [{ model: ProdutoTamanho, as: 'produtoTamanho', include: ['produto'] }]
+            }]
+        });
+        if (!pedido) return res.status(404).send('Pedido não encontrado');
+        res.setHeader('Content-Type', 'text/html');
+        return res.status(200).send(templateSeparacao(pedido));
+    } catch (error) {
+        res.status(500).send('Erro ao gerar romaneio');
+    }
+};
 
-    let itensHtml = '';
+const gerarRelatorioVale = async (req, res) => {
+    try {
+        const pedido = await ValePedidoSp.findByPk(req.params.id, {
+            include: [{
+                model: ValePedidoItemSp, as: 'itens',
+                include: [{ model: ProdutoTamanho, as: 'produtoTamanho', include: ['produto'] }]
+            }]
+        });
+        if (!pedido) return res.status(404).send('Pedido não encontrado');
+        res.setHeader('Content-Type', 'text/html');
+        return res.status(200).send(templateValePedidoFinal(pedido));
+    } catch (error) {
+        res.status(500).send('Erro ao gerar vale');
+    }
+};
 
-    // Agrupamento por Código (Produto), somando a quantidade total de dúzias e subtotais
-    const agrupadoPorCodigo = pedido.itens.reduce((acc, item) => {
-        if (!item || !item.produtoTamanho || !item.produtoTamanho.produto) {
-            console.error('Item inválido encontrado durante a agregação:', item);
-            return acc;
-        }
-
-        const codigo = item.produtoTamanho.produto.codigo;
-
-        const quantidade = Number(item.quantidade) || 0;
-        const subtotal = Number(item.subtotal) || 0;
-
-        if (!acc[codigo]) {
-            acc[codigo] = {
-                codigo: codigo,
-                // Assumimos que o preço unitário da dúzia é o mesmo para todos os tamanhos do mesmo código
-                // Preço unitário (peça) * 12
-                precoUnitarioDuzia: (Number(item.precoUnitario) * 12) || 0,
-                subtotal: 0,
-                totalQuantidade: 0
-            };
-        }
-
-        acc[codigo].totalQuantidade += quantidade;
-        acc[codigo].subtotal += subtotal;
-
-        return acc;
-    }, {});
-
-    Object.values(agrupadoPorCodigo).forEach(item => {
-        // Agora com Preço Dúzia
-        itensHtml += `
-            <tr>
-                <td>${item.codigo}</td>
-                <td style="text-align: right;">${item.totalQuantidade}</td>
-                <td style="text-align: right;">${formatCurrency(item.precoUnitarioDuzia)}</td>
-                <td style="text-align: right;">${formatCurrency(item.subtotal)}</td>
-            </tr>
-        `;
+// --- TEMPLATES ---
+function templateSeparacao(pedido) {
+    const agrupado = {};
+    (pedido.itens || []).forEach(item => {
+        const cod = item.produtoTamanho?.produto?.codigo || '---';
+        if (!agrupado[cod]) agrupado[cod] = { tamanhos: [], total: 0 };
+        agrupado[cod].tamanhos.push(`${item.produtoTamanho?.tamanho || ''}(${item.quantidade})`);
+        agrupado[cod].total += Number(item.quantidade) || 0;
     });
 
-    // --- TEMPLATE PRINCIPAL PARA REPETIÇÃO ---
-    const templateRelatorio = (via) => `
-        <div class="relatorio-via">
-            <h1 class="via-titulo">VALE PEDIDO #${pedido.id} (${via})</h1>
-            
-            <div class="header-container">
-                <div class="client-info header-info">
-                    <div><strong>Cliente:</strong> ${pedido.cliente}</div>
-                    <div><strong>Endereço:</strong> ${pedido.endereco}</div>
-                    <div><strong>Vendedor:</strong> ${pedido.vendedor || 'N/A'}</div>
-                </div>
-                <div class="order-info header-info">
-                    <div><strong>Emissão:</strong> ${formatDate(pedido.createdAt)}</div>
-                    <div><strong>Pagamento:</strong> ${formatDate(pedido.dataInicialPagamento)} (${pedido.parcelas}x)</div>
-                    <div><strong>Separação:</strong> ${pedido.cidadeSeparacao}</div>
-                </div>
-            </div>
-            <div class="separator-line"></div>
+    const itensHtml = Object.keys(agrupado).map(cod => `
+        <tr style="border-bottom: 1px solid #ccc;">
+            <td style="padding: 4px; font-size: 13px;"><strong>${cod}</strong></td>
+            <td style="padding: 4px; font-size: 11px; color: #444;">${agrupado[cod].tamanhos.join(' | ')}</td>
+            <td style="padding: 4px; text-align: center; font-size: 15px; font-weight: bold;">${agrupado[cod].total.toFixed(2)} dz</td>
+            <td style="padding: 4px; border-left: 1px solid #000; text-align: center;">[ ]</td>
+        </tr>`).join('');
 
-            <h2>ITENS (Agrupado)</h2>
-            <table class="itens-table">
-                <thead>
-                    <tr>
-                        <th style="width: 20%;">Cód.</th>
-                        <th style="width: 30%; text-align: right;">Qtd. Total (Dz.)</th>
-                        <th style="width: 30%; text-align: right;">Preço Dúzia</th>
-                        <th style="width: 20%; text-align: right;">Subtotal</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${itensHtml}
-                </tbody>
-            </table>
-
-            <div class="totals">
-                <div><span>Volumes Totais (Dúzias):</span> <strong>${pedido.volumes || 0}</strong></div>
-                <div><span>Desconto (${pedido.descontoPorcento || 0}%):</span> ${formatCurrency(pedido.valorBruto * (pedido.descontoPorcento / 100) || 0)}</div>
-                <div class="total-final"><span>TOTAL A PAGAR:</span> ${formatCurrency(pedido.precoTotal || 0)}</div>
-            </div>
-            
-            <div class="separador-assinatura">___________________________<br>Assinatura Cliente</div>
-        </div>
-    `;
-
-
-    // --- ESTRUTURA FINAL COM DUAS VIAS E CSS PARA IMPRESSÃO ---
-    const html = `
-        <!DOCTYPE html>
-        <html lang="pt-BR">
-        <head>
-            <meta charset="UTF-8">
-            <title>Vale Pedido #${pedido.id} - Duas Vias Quadrado</title>
-            <style>
-                /* Estilo base para visualização na tela */
-                body { font-family: Arial, sans-serif; margin: 0; padding: 0; font-size: 8px; }
-                
-                /* Estilo da Via na tela */
-                .relatorio-via {
-                    box-sizing: border-box;
-                    padding: 5px;
-                    border: 1px solid #ccc;
-                    margin: 5px; 
-                    overflow: hidden;
-                    width: 48%; /* Duas vias lado a lado na tela */
-                    float: left; 
-                    min-height: 40vh;
-                }
-
-                .via-titulo { font-size: 11px; color: #0056b3; border-bottom: 1px solid #ccc; padding-bottom: 2px; margin-bottom: 4px; text-align: center; }
-                h2 { font-size: 9px; margin-top: 4px; margin-bottom: 3px; }
-
-                /* Header (2 colunas) */
-                .header-container { display: flex; justify-content: space-between; margin-bottom: 4px; }
-                .client-info, .order-info { width: 49%; font-size: 7px; }
-                .header-info div { margin-bottom: 1px; }
-
-                /* Tabela de Itens compacta */
-                .itens-table { width: 100%; border-collapse: collapse; margin-top: 3px; font-size: 7px; }
-                .itens-table th, .itens-table td { border: 1px solid #ddd; padding: 1px 3px; text-align: left; }
-                .itens-table th { background-color: #f2f2f2; font-weight: bold; }
-                
-                /* Totais */
-                .totals { margin-top: 5px; width: 100%; font-size: 8px; }
-                .totals div { display: flex; justify-content: space-between; margin-bottom: 1px; }
-                .total-final { font-weight: bold; font-size: 1.0em; color: #d9534f; border-top: 1px solid #000; padding-top: 1px; margin-top: 2px; }
-                
-                .separador-assinatura { text-align: center; margin-top: 10px; font-size: 8px; }
-                .separator-line { border-bottom: 1px dashed #ccc; margin: 2px 0; }
-
-                /* =======================================================
-                    CSS para Impressão (DUAS VIAS LADO A LADO NA A4)
-                    ======================================================= */
-                @media print {
-                    @page { margin: 0.5cm; size: A4; }
-                    
-                    body { margin: 0; padding: 0; font-size: 8px; }
-                    
-                    .relatorio-via {
-                        /* Força as duas vias a ficarem lado a lado na A4 (formato quadrado) */
-                        width: 49%; 
-                        float: left;
-                        box-sizing: border-box;
-                        padding: 5px;
-                        border: 1px solid #000; /* Borda para separar as duas vias impressas */
-                        margin: 0.1cm;
-                        height: auto; 
-                    }
-                    
-                    /* Opcional: Limpa o float após o último item para evitar problemas */
-                    body::after {
-                        content: "";
-                        display: table;
-                        clear: both;
-                    }
-                }
-
-            </style>
-        </head>
-        <body>
-            ${templateRelatorio('VIA 1 - CLIENTE')}
-            ${templateRelatorio('VIA 2 - SEPARAÇÃO')}
-        </body>
-        </html>
-    `;
-
-    return html;
+    return `<html><body style="font-family: sans-serif;"><h2>GUIA DE SEPARAÇÃO #${pedido.id}</h2><p>CLIENTE: ${pedido.cliente}</p><p>ESTOQUE: ${pedido.cidadeSeparacao}</p><table border="1" style="width:100%; border-collapse: collapse;"><thead><tr><th>REF</th><th>TAMANHOS (DZ)</th><th>TOTAL</th><th>OK</th></tr></thead><tbody>${itensHtml}</tbody></table></body></html>`;
 }
 
-// ⚠️ EXPORTS FINAIS:
-export {
-    buscarProdutoCompleto,
-    criarValePedidoSp,
-    listarValesPedidoSp,
-    deletarValePedidoSp,
-    gerarRelatorioValePedido
+function templateValePedidoFinal(pedido) {
+    const formatCurrency = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v) || 0);
+    const consolidado = {};
+    let brutoRecalculado = 0;
+
+    (pedido.itens || []).forEach(item => {
+        const cod = item.produtoTamanho?.produto?.codigo || '---';
+        const qtdDz = Number(item.quantidade) || 0;
+        const precoDz = Number(item.precoUnitario) || 0;
+
+        if (qtdDz > 0) {
+            if (!consolidado[cod]) consolidado[cod] = { qtd: 0, subtotal: 0, precoDz };
+            consolidado[cod].qtd += qtdDz;
+            const subLinha = Number((qtdDz * precoDz).toFixed(2));
+            consolidado[cod].subtotal += subLinha;
+            brutoRecalculado += subLinha;
+        }
+    });
+
+    const itensHtml = Object.keys(consolidado).map(cod => `
+        <tr>
+            <td style="padding: 5px; border-bottom: 1px solid #eee;">${cod}</td>
+            <td style="text-align: center; border-bottom: 1px solid #eee;">${consolidado[cod].qtd.toFixed(2)} dz</td>
+            <td style="text-align: right; border-bottom: 1px solid #eee;">${formatCurrency(consolidado[cod].precoDz)}</td>
+            <td style="text-align: right; border-bottom: 1px solid #eee; font-weight: bold;">${formatCurrency(consolidado[cod].subtotal)}</td>
+        </tr>`).join('');
+
+    const descPerc = Number(pedido.descontoPorcento) || 0;
+    const valorDesconto = brutoRecalculado * (descPerc / 100);
+    const finalLiquido = brutoRecalculado - valorDesconto;
+
+    const layoutVia = (titulo) => `
+        <div style="width: 48%; float: left; border: 1px dashed #000; padding: 10px; margin: 1%; box-sizing: border-box; min-height: 14cm; font-family: sans-serif;">
+            <div style="text-align: center; border-bottom: 2px solid #000; margin-bottom: 10px; padding-bottom: 5px;">
+                <h3 style="margin: 0;">VALE PEDIDO SP</h3>
+                <small>${titulo} | Pedido #${pedido.id}</small>
+            </div>
+            <div style="font-size: 11px; margin-bottom: 10px;">
+                <strong>CLIENTE:</strong> ${pedido.cliente}<br>
+                <strong>VENDEDOR:</strong> ${pedido.vendedor || '-'}<br>
+                <strong>DATA:</strong> ${new Date(pedido.dataFinalizacao || pedido.updatedAt).toLocaleDateString('pt-BR')}
+            </div>
+            <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+                <thead>
+                    <tr style="background: #eee; border-bottom: 1px solid #000;">
+                        <th style="text-align: left; padding: 4px;">REF</th>
+                        <th>QTD (DZ)</th>
+                        <th style="text-align: right;">PREÇO DZ</th>
+                        <th style="text-align: right;">TOTAL</th>
+                    </tr>
+                </thead>
+                <tbody>${itensHtml}</tbody>
+            </table>
+            <div style="margin-top: 15px; text-align: right; border-top: 2px solid #000; padding-top: 5px;">
+                <div style="font-size: 10px; color: #666;">Bruto: ${formatCurrency(brutoRecalculado)}</div>
+                ${descPerc > 0 ? `<div style="font-size: 10px; color: #666;">Desconto (${descPerc}%): -${formatCurrency(valorDesconto)}</div>` : ''}
+                <div style="font-size: 12px; margin-top: 4px;">TOTAL LÍQUIDO:</div>
+                <strong style="font-size: 18px;">${formatCurrency(finalLiquido)}</strong>
+            </div>
+        </div>`;
+
+    return `<html><body style="margin: 0;">${layoutVia('VIA EMPRESA')}${layoutVia('VIA CLIENTE')}</body></html>`;
+}
+
+export { 
+    buscarPedidoPorId, 
+    buscarProdutoCompleto, 
+    criarValePedidoSp, 
+    finalizarValePedidoSp,
+    listarValesPedidoSp, 
+    deletarValePedidoSp, 
+    gerarRelatorioRomaneio, 
+    gerarRelatorioVale 
 };

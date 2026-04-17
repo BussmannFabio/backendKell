@@ -1,33 +1,29 @@
 import express from 'express';
-import {
-  criarValePedidoSp,
-  listarValesPedidoSp,
-  deletarValePedidoSp,
-  buscarProdutoCompleto,
-  gerarRelatorioValePedido 
-} from '../controllers/valePedidoSp-controller.js';
-
 const router = express.Router();
 
-// --- ROTAS DO VALE PEDIDO SP ---
+import {
+    criarValePedidoSp,
+    finalizarValePedidoSp,
+    listarValesPedidoSp,
+    deletarValePedidoSp,
+    buscarProdutoCompleto,
+    buscarPedidoPorId, // ✅ Adicionado
+    gerarRelatorioRomaneio,
+    gerarRelatorioVale
+} from '../controllers/valePedidoSp-controller.js';
 
-// Buscar tamanhos + preço do produto
-// Rota Final: GET /vale-pedido-sp/produto/:codigo
+// Rotas de CRUD
+router.post('/', criarValePedidoSp);
+router.get('/', listarValesPedidoSp);
+router.get('/:id', buscarPedidoPorId); // ✅ Rota que resolve o erro 404
+router.put('/:id/finalizar', finalizarValePedidoSp);
+router.delete('/:id', deletarValePedidoSp);
 router.get('/produto/:codigo', buscarProdutoCompleto);
 
-// ROTA DE RELATÓRIO (NOVA)
-// Rota Final: GET /vale-pedido-sp/:id/relatorio
-router.get('/:id/relatorio', gerarRelatorioValePedido); 
-
-// --- ROTAS CRUD ---
-
-// Rota Final: POST /vale-pedido-sp
-router.post('/', criarValePedidoSp);
-
-// Rota Final: GET /vale-pedido-sp
-router.get('/', listarValesPedidoSp);
-
-// Rota Final: DELETE /vale-pedido-sp/:id
-router.delete('/:id', deletarValePedidoSp);
+/* ======================================================
+    ROTAS DE IMPRESSÃO
+====================================================== */
+router.get('/relatorio/romaneio/:id', gerarRelatorioRomaneio);
+router.get('/relatorio/vale/:id', gerarRelatorioVale);
 
 export default router;

@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Documentação Técnica — Sistema ERP Kell</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+
+    :root {
+      --primary: #4f46e5;
+      --primary-light: #ede9fe;
+      --accent: #10b981;
+      --dark: #1e1b4b;
+      --gray: #64748b;
+      --border: #e5e7eb;
+      --bg: #f8fafc;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: #1a1a2e;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    /* ── Capa ── */
+    .cover {
+      background: linear-gradient(135deg, #1e1b4b 0%, #4f46e5 60%, #7c3aed 100%);
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 3rem 2rem;
+      page-break-after: always;
+    }
+
+    .cover-logo {
+      font-size: 4rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .cover h1 {
+      font-size: 2.8rem;
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 0.5rem;
+    }
+
+    .cover h2 {
+      font-size: 1.2rem;
+      font-weight: 400;
+      opacity: 0.8;
+      margin-bottom: 2.5rem;
+    }
+
+    .cover-badges {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 3rem;
+    }
+
+    .badge {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 50px;
+      padding: 0.35rem 1rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+
+    .cover-meta {
+      opacity: 0.6;
+      font-size: 0.85rem;
+      margin-top: auto;
+    }
+
+    /* ── Layout principal ── */
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 3rem 2rem;
+    }
+
+    /* ── Cabeçalho de seção ── */
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      margin-bottom: 1.2rem;
+      padding-bottom: 0.6rem;
+      border-bottom: 2px solid var(--primary-light);
+    }
+
+    .section-number {
+      background: var(--primary);
+      color: white;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+
+    .section-header h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--dark);
+    }
+
+    /* ── Cards de conteúdo ── */
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 2rem;
+      margin-bottom: 2.5rem;
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 16px rgba(79,70,229,0.07);
+      page-break-inside: avoid;
+    }
+
+    .card p {
+      color: var(--gray);
+      margin-bottom: 1.2rem;
+      font-size: 0.92rem;
+    }
+
+    /* ── Tech stack grid ── */
+    .tech-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .tech-box {
+      background: var(--primary-light);
+      border-radius: 10px;
+      padding: 1rem 1.2rem;
+      border-left: 4px solid var(--primary);
+    }
+
+    .tech-box h4 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.6rem;
+    }
+
+    .tech-box ul {
+      list-style: none;
+      color: var(--dark);
+      font-size: 0.88rem;
+    }
+
+    .tech-box ul li::before {
+      content: "▸ ";
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    /* ── Tabelas ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+
+    th {
+      background: var(--primary);
+      color: white;
+      padding: 0.65rem 1rem;
+      text-align: left;
+      font-weight: 600;
+    }
+
+    th:first-child { border-radius: 8px 0 0 0; }
+    th:last-child  { border-radius: 0 8px 0 0; }
+
+    td {
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    tr:nth-child(even) td { background: #f8fafc; }
+    tr:last-child td      { border-bottom: none; }
+
+    code {
+      background: var(--primary-light);
+      color: var(--primary);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.85em;
+    }
+
+    /* ── Diagrama wrapper ── */
+    .mermaid-wrap {
+      background: #ffffff;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 2rem 1.5rem;
+      overflow-x: auto;
+      text-align: center;
+    }
+
+    .mermaid-wrap svg {
+      max-width: 100%;
+      height: auto;
+      min-height: 200px;
+    }
+
+    /* Força alto contraste nos textos do Mermaid */
+    .mermaid-wrap .label,
+    .mermaid-wrap text,
+    .mermaid-wrap .nodeLabel,
+    .mermaid-wrap .edgeLabel {
+      color: #111827 !important;
+      fill: #111827 !important;
+      font-size: 13px !important;
+      font-family: 'Inter', sans-serif !important;
+    }
+
+    /* ── Fluxo de comunicação text list ── */
+    .flow-list {
+      counter-reset: flow;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .flow-list li {
+      counter-increment: flow;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.8rem;
+      padding: 0.6rem 0.8rem;
+      background: var(--bg);
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+
+    .flow-list li::before {
+      content: counter(flow);
+      background: var(--primary);
+      color: white;
+      min-width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.78rem;
+    }
+
+    /* ── Print ── */
+    @media print {
+      body { background: white; font-size: 12px; }
+      .cover { min-height: 100vh; }
+      .card { box-shadow: none; border: 1px solid #ddd; }
+      .mermaid-wrap { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════ CAPA ═══════════════ -->
+<div class="cover">
+  <div class="cover-logo">⚙️</div>
+  <h1>Sistema ERP Kell</h1>
+  <h2>Documentação Técnica Completa</h2>
+
+  <div class="cover-badges">
+    <span class="badge">🟢 Node.js + Express</span>
+    <span class="badge">🔵 Angular 20</span>
+    <span class="badge">🐘 PostgreSQL</span>
+    <span class="badge">🔗 Sequelize ORM</span>
+    <span class="badge">🔐 JWT Auth</span>
+  </div>
+
+  <div class="cover-meta">
+    Gerado em: 16 de Março de 2026 &nbsp;|&nbsp; BackEndKell + FrontEndKell
+  </div>
+</div>
+
+<!-- ═══════════════ CONTEÚDO ═══════════════ -->
+<div class="container">
+
+  <!-- 1. Visão Geral -->
+  <div class="card">
+    <div class="section-header">
+      <div class="section-number">1</div>
+      <h2>Visão Geral da Arquitetura</h2>
+    </div>
+    <p>
+      Solução no padrão <strong>cliente-servidor</strong>. O Frontend Angular 20 se comunica com o Backend Node.js via HTTP REST, 
+      protegido por autenticação JWT. O banco de dados PostgreSQL é acessado exclusivamente pelo servidor através do Sequelize ORM.
+    </p>
+    <div class="tech-grid">
+      <div class="tech-box">
+        <h4>🖥️ Backend — BackEndKell</h4>
+        <ul>
+          <li>Node.js + Express 5</li>
+          <li>Sequelize 6 + PostgreSQL</li>
+          <li>JWT + bcryptjs</li>
+          <li>CORS + dotenv</li>
+          <li>Porta padrão: <code>:3001</code></li>
+        </ul>
+      </div>
+      <div class="tech-box">
+        <h4>🌐 Frontend — FrontEndKell</h4>
+        <ul>
+          <li>Angular 20 + TypeScript</li>
+          <li>RxJS (programação reativa)</li>
+          <li>jsPDF + html2canvas (PDF)</li>
+          <li>jwt-decode</li>
+          <li>Route Guards + Interceptors</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Rotas da API -->
+  <div class="card">
+    <div class="section-header">
+      <div class="section-number">2</div>
+      <h2>Endpoints da API (Backend)</h2>
+    </div>
+    <p>Todas as rotas são prefixadas no servidor Express rodando na porta <code>3001</code>.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Prefixo</th>
+          <th>Arquivo de Rota</th>
+          <th>Domínio</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code>GET /health</code></td><td>server.js</td><td>Verificação de saúde do servidor</td></tr>
+        <tr><td><code>/auth</code></td><td>auth-routes.js</td><td>Login, registro, validação JWT</td></tr>
+        <tr><td><code>/users</code></td><td>user-routes.js</td><td>Gestão de usuários e perfis</td></tr>
+        <tr><td><code>/clientes</code></td><td>clientes-routes.js</td><td>CRUD de clientes</td></tr>
+        <tr><td><code>/vendedores</code></td><td>vendedor-routes.js</td><td>CRUD de vendedores</td></tr>
+        <tr><td><code>/produtos</code></td><td>produto-routes.js</td><td>Produtos e tamanhos</td></tr>
+        <tr><td><code>/confeccoes</code></td><td>confeccao-routes.js</td><td>Cadastro de confecções</td></tr>
+        <tr><td><code>/materiais</code></td><td>material-routes.js</td><td>Cadastro de materiais/insumos</td></tr>
+        <tr><td><code>/ordens</code></td><td>ordemServico-routes.js</td><td>Criação e gestão de OS</td></tr>
+        <tr><td><code>/estoque</code></td><td>estoque-routes.js</td><td>Consulta de estoque</td></tr>
+        <tr><td><code>/movimentar-estoque</code></td><td>movimentacao-material-routes.js</td><td>Entradas e saídas de material</td></tr>
+        <tr><td><code>/cargas</code></td><td>carga-routes.js</td><td>Transferências central → SP</td></tr>
+        <tr><td><code>/vale-pedido-sp</code></td><td>valePedidoSp-routes.js</td><td>Saídas de São Paulo</td></tr>
+        <tr><td><code>/financeiro</code></td><td>financeiro-routes.js</td><td>Lançamentos financeiros</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 3. Módulos do Frontend -->
+  <div class="card">
+    <div class="section-header">
+      <div class="section-number">3</div>
+      <h2>Módulos do Frontend (Angular)</h2>
+    </div>
+    <table>
+      <thead>
+        <tr><th>Rota Angular</th><th>Componente</th><th>Consome Endpoint</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>/login</code></td><td>login</td><td><code>/auth</code></td></tr>
+        <tr><td><code>/cliente-lista</code></td><td>cliente-lista</td><td><code>/clientes</code></td></tr>
+        <tr><td><code>/vendedor-lista</code></td><td>vendedor-lista</td><td><code>/vendedores</code></td></tr>
+        <tr><td><code>/cadastro-produto</code></td><td>cadastro-produto</td><td><code>/produtos</code></td></tr>
+        <tr><td><code>/cadastro-materiais</code></td><td>cadastro-materiais</td><td><code>/materiais</code></td></tr>
+        <tr><td><code>/cadastro-confeccao</code></td><td>cadastro-confeccao</td><td><code>/confeccoes</code></td></tr>
+        <tr><td><code>/criacao-os</code></td><td>criacao-os</td><td><code>/ordens</code></td></tr>
+        <tr><td><code>/retorno-os</code></td><td>retorno-os</td><td><code>/ordens</code></td></tr>
+        <tr><td><code>/relatorio-os</code></td><td>relatorio-os</td><td><code>/ordens</code> + jsPDF</td></tr>
+        <tr><td><code>/estoque</code></td><td>estoque</td><td><code>/estoque</code></td></tr>
+        <tr><td><code>/estoque-sp</code></td><td>estoque-sp</td><td><code>/estoque</code></td></tr>
+        <tr><td><code>/envio-materiais</code></td><td>envio-materiais</td><td><code>/movimentar-estoque</code></td></tr>
+        <tr><td><code>/cargas</code></td><td>cargas</td><td><code>/cargas</code></td></tr>
+        <tr><td><code>/vale-pedido-sp</code></td><td>vale-pedido-sp</td><td><code>/vale-pedido-sp</code></td></tr>
+        <tr><td><code>/financeiro</code></td><td>financeiro</td><td><code>/financeiro</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 4. Diagrama: Casos de Uso -->
+  <div class="card">
+    <div class="section-header">
+      <div class="section-number">4</div>
+      <h2>Diagrama — Casos de Uso por Módulo</h2>
+    </div>
+    <p>Visão de quais telas Angular consomem quais rotas do backend.</p>
+    <div class="mermaid-wrap">
+      <pre class="mermaid">
+flowchart TD
+    U(["👤 Usuário"])
+
+    subgraph FE["Frontend Angular 20"]
+        direction TB
+        M1["/login"]
+        M2["/cliente-lista e /vendedor-lista"]
+        M3["/cadastro-produto, /materiais, /confeccao"]
+        M4["/criacao-os, /retorno-os, /relatorio-os"]
+        M5["/estoque, /estoque-sp, /envio-materiais"]
+        M6["/cargas e /vale-pedido-sp"]
+        M7["/financeiro"]
+    end
+
+    subgraph BE["Backend Node.js — Rotas :3001"]
+        direction TB
+        R1["POST /auth/login"]
+        R2["/clientes e /vendedores"]
+        R3["/produtos, /materiais, /confeccoes"]
+        R4["/ordens"]
+        R5["/estoque e /movimentar-estoque"]
+        R6["/cargas e /vale-pedido-sp"]
+        R7["/financeiro"]
+    end
+
+    U --> M1 --> R1
+    U --> M2 --> R2
+    U --> M3 --> R3
+    U --> M4 --> R4
+    U --> M5 --> R5
+    U --> M6 --> R6
+    U --> M7 --> R7
+      </pre>
+    </div>
+  </div>
+
+  <!-- 5. Diagrama: Login -->
+  <div class="card">
+    <div class="section-header">
+      <div class="section-number">5</div>
+      <h2>Diagrama — Fluxo de Autenticação (Login)</h2>
+    </div>
+    <p>Sequência completa desde o preenchimento do formulário até o redirecionamento pós-login.</p>
+    <div class="mermaid-wrap">
+      <pre class="mermaid">
+sequenceDiagram
+    actor Usuario as Usuário
+    participant Login as Angular /login
+    participant API as POST /auth/login
+    participant DB as PostgreSQL
+
+    Usuario->>Login: Preenche e-mail e senha
+    Login->>API: POST /auth/login { email, password }
+    API->>DB: SELECT * FROM users WHERE email = ?
+    DB-->>API: { id, nome, passwordHash, roleId }
+    API->>API: bcrypt.compare(password, hash)
+
+    alt Credenciais inválidas
+        API-->>Login: 401 Unauthorized
+        Login-->>Usuario: Mensagem de erro
+    else Credenciais corretas
+        API->>API: jwt.sign({ id, roleId })
+        API-->>Login: 200 OK { token, user }
+        Login->>Login: Salva token no LocalStorage
+        Login-->>Usuario: Redireciona ao Dashboard
+    end
+      </pre>
+    </div>
+  </div>
+
+  <!-- 6. Diagrama: Criação de OS -->
+  <div class="card">
+    <div class="section-header">
+      <div class="section-number">6</div>
+      <h2>Diagrama — Fluxo de Criação de OS</h2>
+    </div>
+    <p>Sequência crítica de criação de uma Ordem de Serviço, do frontend ao banco de dados.</p>
+    <div class="mermaid-wrap">
+      <pre class="mermaid">
+sequenceDiagram
+    actor Op as Operador
+    participant UI as Angular /criacao-os
+    participant Int as auth.interceptor
+    participant MW as Middleware JWT
+    participant Ctrl as ordemServico Controller
+    participant DB as PostgreSQL
+
+    Op->>UI: Preenche OS (confeccao, produtos, qtd)
+    UI->>Int: POST /ordens
+    Int->>Int: Injeta Bearer token no header
+    Int->>MW: Requisicao autenticada
+    MW->>MW: jwt.verify(token)
+
+    alt Token invalido ou expirado
+        MW-->>UI: 403 Forbidden
+        UI-->>Op: Redireciona para login
+    else Token valido
+        MW->>Ctrl: Processa requisicao
+        Ctrl->>DB: INSERT INTO ordem_servicos
+        DB-->>Ctrl: Retorna ordemId
+        loop Para cada item
+            Ctrl->>DB: INSERT INTO ordem_items
+        end
+        Ctrl-->>UI: 201 Created { ordemId }
+        UI-->>Op: OS criada com sucesso
+    end
+      </pre>
+    </div>
+  </div>
+
+  <!-- 7. Diagrama: Estoque -->
+  <div class="card">
+    <div class="section-header">
+      <div class="section-number">7</div>
+      <h2>Diagrama — Estoque e Movimentação</h2>
+    </div>
+    <p>Fluxo de consulta e atualização de estoque entre as telas Angular e o banco de dados.</p>
+    <div class="mermaid-wrap">
+      <pre class="mermaid">
+flowchart LR
+    subgraph Angular
+        A["Tela /estoque"] -->|GET /estoque| S["Serviço HTTP Angular"]
+        B["Tela /envio-materiais"] -->|POST /movimentar-estoque| S
+    end
+
+    subgraph Node.js
+        S --> MW{Middleware JWT}
+        MW -->|Valido| EC["estoqueController"]
+        MW -->|Valido| MC["movimentacaoController"]
+    end
+
+    subgraph PostgreSQL
+        EC -->|SELECT| EP[("EstoqueProduto\nEstoqueMaterial")]
+        MC -->|INSERT| MM[("MovimentacaoMaterial")]
+        MC -->|UPDATE saldo| EP
+    end
+      </pre>
+    </div>
+  </div>
+
+  <!-- 8. Diagrama: ER -->
+  <div class="card">
+    <div class="section-header">
+      <div class="section-number">8</div>
+      <h2>Diagrama — Entidades e Relacionamentos (ER)</h2>
+    </div>
+    <p>Baseado diretamente nas associações definidas em <code>models/index.js</code>.</p>
+    <div class="mermaid-wrap">
+      <pre class="mermaid">
+erDiagram
+    Vendedor ||--o{ Cliente : "tem"
+    Produto ||--o{ ProdutoTamanho : "tem tamanhos"
+    ProdutoTamanho ||--|| EstoqueProduto : "controla estoque"
+    ProdutoTamanho ||--o{ EstoqueSp : "estoque SP"
+    ProdutoTamanho ||--o{ CargaItem : "enviado em carga"
+    Carga ||--o{ CargaItem : "contem"
+    OrdemServico ||--o{ OrdemItem : "possui itens"
+    OrdemServico ||--o{ Financeiro : "gera lancamento"
+    OrdemItem }o--|| ProdutoTamanho : "referencia"
+    OrdemItem }o--|| Produto : "referencia"
+    Confeccao ||--o{ OrdemServico : "executa"
+    Confeccao ||--o{ Financeiro : "recebe pagamento"
+    Confeccao ||--o{ MovimentacaoMaterial : "registra uso"
+    ValePedidoSp ||--o{ ValePedidoItemSp : "contem"
+    ValePedidoItemSp }o--|| ProdutoTamanho : "referencia"
+    Material ||--|| EstoqueMaterial : "controla estoque"
+    Material ||--o{ MovimentacaoMaterial : "movimentado"
+    User }o--|| Role : "possui papel"
+    User ||--o{ ValeMaterial : "solicita"
+    User ||--o{ MovimentacaoMaterial : "realiza"
+      </pre>
+    </div>
+  </div>
+
+  <!-- 9. Diagrama: Arquitetura em Camadas -->
+  <div class="card">
+    <div class="section-header">
+      <div class="section-number">9</div>
+      <h2>Diagrama — Arquitetura em Camadas</h2>
+    </div>
+    <p>Macro visão do sistema, desde o navegador até o banco de dados.</p>
+    <div class="mermaid-wrap">
+      <pre class="mermaid">
+flowchart TB
+    subgraph Browser["Navegador — Cliente"]
+        C1["Componentes Angular\ncriacao-os, estoque, financeiro..."]
+        C2["Angular Services\nordem.service, financeiro.service..."]
+        C3["auth.guard + auth.interceptor"]
+        C1 <--> C2
+        C2 <--> C3
+    end
+
+    subgraph Server["Servidor Node.js — Porta 3001"]
+        S1["Express Routes\n/ordens /estoque /auth /cargas..."]
+        S2["Controllers\nValidacao + Logica de Negocio"]
+        S3["Sequelize ORM\nModels + Associations"]
+        S1 --> S2 --> S3
+    end
+
+    subgraph DB["Banco de Dados — PostgreSQL"]
+        D1[("Tabelas do Sistema")]
+    end
+
+    C3 -->|"HTTP + JWT Bearer Token"| S1
+    S3 <-->|SQL| D1
+    S2 -->|"JSON Response"| C2
+      </pre>
+    </div>
+  </div>
+
+  <!-- 10. Fluxo de Segurança -->
+  <div class="card">
+    <div class="section-header">
+      <div class="section-number">10</div>
+      <h2>Fluxo de Segurança (Resumo)</h2>
+    </div>
+    <ol class="flow-list">
+      <li>Usuário acessa o sistema e faz login na tela <code>/login</code>.</li>
+      <li>Angular envia credenciais para <code>POST /auth/login</code>.</li>
+      <li>Backend valida e-mail + senha (bcrypt) e retorna um token JWT assinado.</li>
+      <li>Token é salvo no <code>LocalStorage</code> pelo Angular.</li>
+      <li>O <code>auth.guard</code> bloqueia rotas protegidas para usuários sem token.</li>
+      <li>O <code>auth.interceptor</code> injeta o token em <em>toda</em> requisição HTTP subsequente.</li>
+      <li>O Middleware do Backend valida o token em cada endpoint protegido.</li>
+      <li>Em caso de token inválido ou expirado, o servidor retorna <code>403</code> e o Angular realiza logout.</li>
+    </ol>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'default',
+    themeVariables: {
+      /* Nós e shapes */
+      primaryColor: '#dbeafe',
+      primaryTextColor: '#111827',
+      primaryBorderColor: '#2563eb',
+
+      /* Linhas e setas */
+      lineColor: '#374151',
+
+      /* Nós secundários (subgraph interno) */
+      secondaryColor: '#dcfce7',
+      secondaryTextColor: '#111827',
+      secondaryBorderColor: '#16a34a',
+
+      /* Nós terciários */
+      tertiaryColor: '#fef9c3',
+      tertiaryTextColor: '#111827',
+      tertiaryBorderColor: '#ca8a04',
+
+      /* Sequence diagram */
+      actorBkg: '#dbeafe',
+      actorTextColor: '#111827',
+      actorBorder: '#2563eb',
+      activationBkgColor: '#ede9fe',
+      activationBorderColor: '#7c3aed',
+      loopTextColor: '#111827',
+      noteBkgColor: '#fef3c7',
+      noteTextColor: '#111827',
+      noteBorderColor: '#f59e0b',
+      labelBoxBkgColor: '#f0fdf4',
+      labelBoxBorderColor: '#16a34a',
+      labelTextColor: '#111827',
+      signalColor: '#1e40af',
+      signalTextColor: '#111827',
+
+      /* ER diagram */
+      attributeBackgroundColorEven: '#f0f9ff',
+      attributeBackgroundColorOdd: '#ffffff',
+
+      /* Fontes */
+      fontFamily: 'Inter, sans-serif',
+      fontSize: '14px'
+    }
+  });
+</script>
+</body>
+</html>

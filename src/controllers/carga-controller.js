@@ -4,42 +4,20 @@ import {
     ProdutoTamanho,
     Produto,
     EstoqueSp,
+    EstoqueProduto,
 } from '../models/index.js';
 
 /* -------- Função auxiliar de formatação -------- */
 function formatarData(dataISO) {
-    if (!dataISO) return ""; 
-
-    if (dataISO instanceof Date) {
-        const ano = dataISO.getFullYear();
-        const mes = String(dataISO.getMonth() + 1).padStart(2, '0');
-        const dia = String(dataISO.getDate()).padStart(2, '0');
-        return `${dia}/${mes}/${ano}`;
-    }
-
-    if (typeof dataISO === 'number') {
-        const d = new Date(dataISO);
-        const ano = d.getFullYear();
-        const mes = String(d.getMonth() + 1).padStart(2, '0');
-        const dia = String(d.getDate()).padStart(2, '0');
-        return `${dia}/${mes}/${ano}`;
-    }
-
-    if (typeof dataISO === 'string' && !dataISO.includes('-')) {
-        const d = new Date(dataISO);
-        if (!isNaN(d)) {
-            const ano = d.getFullYear();
-            const mes = String(d.getMonth() + 1).padStart(2, '0');
-            const dia = String(d.getDate()).padStart(2, '0');
-            return `${dia}/${mes}/${ano}`;
-        }
-    }
-
+    if (!dataISO) return "";
     try {
-        const [ano, mes, dia] = dataISO.split('-');
+        const d = new Date(dataISO);
+        if (isNaN(d)) return "";
+        const ano = d.getUTCFullYear();
+        const mes = String(d.getUTCMonth() + 1).padStart(2, '0');
+        const dia = String(d.getUTCDate()).padStart(2, '0');
         return `${dia}/${mes}/${ano}`;
     } catch (e) {
-        console.error("Erro ao formatar data:", dataISO, e);
         return "";
     }
 }
@@ -48,25 +26,16 @@ function formatarData(dataISO) {
 const getAllCargas = async (req, res) => {
     try {
         const cargas = await Carga.findAll({
-            include: [
-                {
-                    model: CargaItem,
-                    as: 'itensCarga',
-                    include: [
-                        {
-                            model: ProdutoTamanho,
-                            as: 'produtoTamanho',
-                            include: [
-                                { model: Produto, as: 'produto' }
-                            ]
-                        }
-                    ]
-                }
-            ],
-            order: [
-                ['id', 'DESC'],
-                [{ model: CargaItem, as: 'itensCarga' }, 'quantidade', 'DESC']
-            ]
+            include: [{
+                model: CargaItem,
+                as: 'itensCarga',
+                include: [{
+                    model: ProdutoTamanho,
+                    as: 'produtoTamanho',
+                    include: [{ model: Produto, as: 'produto' }]
+                }]
+            }],
+            order: [['id', 'DESC']]
         });
 
         const resposta = cargas.map(c => {
@@ -87,247 +56,221 @@ const getAllCargas = async (req, res) => {
         });
 
         res.json(resposta);
-
     } catch (error) {
         console.error('Erro ao buscar cargas:', error);
         res.status(500).json({ error: 'Erro ao buscar cargas' });
     }
 };
 
-
-/* ---------------------- GET ESTOQUE SP ---------------------- */
+/* ---------------------- GET ESTOQUE SP (Corrigido) ---------------------- */
 const getEstoqueSp = async (req, res) => {
     try {
         const estoque = await EstoqueSp.findAll({
-            include: [
-                {
-                    model: ProdutoTamanho,
-                    as: 'produtoTamanho',
-                    include: [{ model: Produto, as: 'produto' }]
-                }
-            ],
+            // LISTE APENAS AS COLUNAS QUE EXISTEM NO BANCO ATUALMENTE
+            attributes: ['id', 'produtoTamanhoId', 'quantidade'], 
+            include: [{
+                model: ProdutoTamanho,
+                as: 'produtoTamanho',
+                include: [{ model: Produto, as: 'produto' }]
+            }],
             order: [['id', 'ASC']],
         });
 
-        // 🔥 FORMATAR PARA O FRONTEND
         const resposta = estoque.map(e => ({
             id: e.id,
             produtoTamanhoId: e.produtoTamanhoId,
             quantidade: e.quantidade,
-
-            // preenchidos corretamente!
+            estoqueMinimo: 0, // Valor fixo temporário para não quebrar o frontend
             produtoCodigo: e.produtoTamanho?.produto?.codigo || null,
             produtoNome: e.produtoTamanho?.produto?.nome || null,
             tamanho: e.produtoTamanho?.tamanho || null
         }));
 
         res.json(resposta);
-
     } catch (error) {
         console.error('Erro ao buscar estoque SP:', error);
         res.status(500).json({ error: 'Erro ao buscar estoque SP' });
     }
 };
 
-
-/* ---------------------- CREATE CARGA ---------------------- */
+/* ---------------------- CREATE CARGA (Central -> SP) ---------------------- */
 const createCarga = async (req, res) => {
     const t = await Carga.sequelize.transaction();
-
     try {
         const { itens, ...dadosCarga } = req.body;
 
-        // ❗ Backend espera data ISO (YYYY-MM-DD)
         if (!dadosCarga.data || dadosCarga.data === "Invalid date") {
             throw new Error("Data inválida. Envie no formato YYYY-MM-DD.");
         }
 
         const carga = await Carga.create(dadosCarga, { transaction: t });
 
-        // Inserir itens
         if (Array.isArray(itens) && itens.length > 0) {
             for (const item of itens) {
-                await CargaItem.create(
-                    { ...item, cargaId: carga.id },
-                    { transaction: t }
-                );
+                const { produtoTamanhoId, quantidade } = item;
+                const qtd = Number(quantidade);
+                if (qtd <= 0) continue;
 
-                // Atualiza Estoque SP (entrada)
-                const estoque = await EstoqueSp.findOne({
-                    where: { produtoTamanhoId: item.produtoTamanhoId },
+                const estoqueCentral = await EstoqueProduto.findOne({
+                    where: { produtoTamanhoId },
                     transaction: t,
+                    lock: t.LOCK.UPDATE
                 });
 
-                if (estoque) {
-                    await estoque.increment('quantidade', {
-                        by: item.quantidade,
-                        transaction: t,
-                    });
-                } else {
-                    await EstoqueSp.create(
-                        {
-                            produtoTamanhoId: item.produtoTamanhoId,
-                            quantidade: item.quantidade
-                        },
-                        { transaction: t }
-                    );
+                if (!estoqueCentral || estoqueCentral.quantidadePronta < qtd) {
+                    throw new Error(`Estoque Central insuficiente para o produto ID ${produtoTamanhoId}.`);
                 }
+
+                estoqueCentral.quantidadePronta -= qtd;
+                await estoqueCentral.save({ transaction: t });
+
+                await CargaItem.create({ ...item, cargaId: carga.id }, { transaction: t });
+
+                const [estoqueSp] = await EstoqueSp.findOrCreate({
+                    where: { produtoTamanhoId },
+                    defaults: { quantidade: 0, estoqueMinimo: 0 },
+                    transaction: t
+                });
+
+                estoqueSp.quantidade += qtd;
+                await estoqueSp.save({ transaction: t });
             }
         }
 
         await t.commit();
-
-        res.status(201).json({
-            message: 'Carga criada com sucesso',
-            cargaId: carga.id
-        });
-
+        res.status(201).json({ message: 'Carga criada com sucesso e estoque movimentado.', id: carga.id });
     } catch (error) {
         await t.rollback();
-        console.error('Erro ao criar carga:', error);
-        res.status(500).json({ error: error.message || 'Erro ao criar carga' });
+        console.error('Erro no Create Carga:', error.message);
+        res.status(400).json({ error: error.message });
     }
 };
 
-/* ---------------------- UPDATE CARGA ---------------------- */
+/* ---------------------- DELETE CARGA (Estorno: SP -> Central) ---------------------- */
+const deleteCarga = async (req, res) => {
+    const t = await Carga.sequelize.transaction();
+    try {
+        const { id } = req.params;
+        const carga = await Carga.findByPk(id, {
+            include: [{ model: CargaItem, as: 'itensCarga' }],
+            transaction: t
+        });
+
+        if (!carga) throw new Error('Carga não encontrada');
+
+        for (const item of (carga.itensCarga || [])) {
+            const { produtoTamanhoId, quantidade } = item;
+
+            const estoqueSp = await EstoqueSp.findOne({
+                where: { produtoTamanhoId },
+                transaction: t,
+                lock: t.LOCK.UPDATE
+            });
+
+            if (estoqueSp) {
+                estoqueSp.quantidade -= quantidade;
+                if (estoqueSp.quantidade < 0) estoqueSp.quantidade = 0;
+                await estoqueSp.save({ transaction: t });
+            }
+
+            const [estoqueCentral] = await EstoqueProduto.findOrCreate({
+                where: { produtoTamanhoId },
+                defaults: { quantidadePronta: 0, quantidadeAberta: 0 },
+                transaction: t
+            });
+
+            estoqueCentral.quantidadePronta += quantidade;
+            await estoqueCentral.save({ transaction: t });
+        }
+
+        await CargaItem.destroy({ where: { cargaId: id }, transaction: t });
+        await carga.destroy({ transaction: t });
+
+        await t.commit();
+        res.json({ message: 'Carga excluída e estoque estornado com sucesso.' });
+    } catch (error) {
+        await t.rollback();
+        console.error('Erro ao excluir carga:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+/* ---------------------- UPDATE ESTOQUE SP ITEM ---------------------- */
+const updateEstoqueSpItem = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { estoqueMinimo } = req.body;
+
+        console.log(`--- [CONTROLLER] Atualizando Estoque SP ID: ${id} para Mínimo: ${estoqueMinimo}`);
+
+        const item = await EstoqueSp.findByPk(id);
+
+        if (!item) {
+            return res.status(404).json({ message: 'Item de estoque não encontrado no banco' });
+        }
+
+        await item.update({ estoqueMinimo });
+
+        return res.status(200).json(item);
+    } catch (error) {
+        console.error('Erro no updateEstoqueSpItem:', error);
+        return res.status(500).json({ error: error.message });
+    }
+};
+
+/* ---------------------- UPDATE CARGA (Geral) ---------------------- */
 const updateCarga = async (req, res) => {
     try {
         const { id } = req.params;
         const carga = await Carga.findByPk(id);
-
-        if (!carga)
-            return res.status(404).json({ error: 'Carga não encontrada' });
-
+        if (!carga) return res.status(404).json({ error: 'Carga não encontrada' });
         await carga.update(req.body);
-        res.json({ message: 'Carga atualizada com sucesso', carga });
-
+        res.json({ message: 'Carga atualizada', carga });
     } catch (error) {
-        console.error('Erro ao atualizar carga:', error);
         res.status(500).json({ error: 'Erro ao atualizar carga' });
     }
 };
 
-/* ---------------------- DELETE CARGA ---------------------- */
-const deleteCarga = async (req, res) => {
-    // ❗ IMPORTANTE: O delete Carga atual não estorna o estoque.
-    // Para fins de simplificação neste exercício, a lógica de estorno foi aplicada apenas em deletarValePedidoSp.
-    try {
-        const { id } = req.params;
-
-        const carga = await Carga.findByPk(id);
-
-        if (!carga)
-            return res.status(404).json({ error: 'Carga não encontrada' });
-
-        await carga.destroy();
-        res.json({ message: 'Carga excluída com sucesso' });
-
-    } catch (error) {
-        console.error('Erro ao excluir carga:', error);
-        res.status(500).json({ error: 'Erro ao excluir carga' });
-    }
-};
-
-/* ---------------------- BAIXA DE ESTOQUE SP (Debitar) ---------------------- */
+/* ---------------------- AUXILIARES: BAIXA E RETORNO SP ---------------------- */
 const darBaixaEstoqueSp = async (itensBaixa, t) => {
-    console.log('[BAIXA SP] Iniciando baixa de estoque...', itensBaixa);
-
-    const produtoTamanhoIds = itensBaixa.map(item => item.produtoTamanhoId);
-
-    // Garante INNER JOIN e LOCK.UPDATE para consistência e evitar o erro do PostgreSQL
-    const estoques = await EstoqueSp.findAll({
-        where: { produtoTamanhoId: produtoTamanhoIds },
-        include: [{
-            model: ProdutoTamanho,
-            as: 'produtoTamanho',
-            required: true, 
-            include: [{ 
-                model: Produto, 
-                as: 'produto',
-                required: true 
-            }]
-        }],
-        transaction: t,
-        lock: t.LOCK.UPDATE
-    });
-
-    const estoqueMap = {};
-    estoques.forEach(e => estoqueMap[e.produtoTamanhoId] = e);
-
     for (const item of itensBaixa) {
         const { produtoTamanhoId, quantidade } = item;
-        
-        // 💡 CONVERSÃO: Dúzias (pedido) para Peças (estoque)
-        const quantidadeEmPecas = quantidade * 12;
+        const qtdParaDebitar = Number(quantidade) * 12; 
 
-        const estoque = estoqueMap[produtoTamanhoId];
+        const estoque = await EstoqueSp.findOne({
+            where: { produtoTamanhoId },
+            transaction: t,
+            lock: t.LOCK.UPDATE 
+        });
+
         if (!estoque) {
-            throw new Error(`Estoque SP não encontrado para produtoTamanhoId: ${produtoTamanhoId}`);
+            throw new Error(`Produto ${produtoTamanhoId} não tem registro no Estoque SP.`);
         }
 
-        // 1. Verificar estoque com a quantidade convertida em peças
-        if (estoque.quantidade < quantidadeEmPecas) { 
-            const produtoCodigo = estoque.produtoTamanho.produto.codigo;
-            const tamanho = estoque.produtoTamanho.tamanho;
-
-            throw new Error(
-                `Estoque insuficiente para Cód. ${produtoCodigo} Tam. ${tamanho}. ` +
-                `Requer ${quantidade} dúzias (${quantidadeEmPecas} peças), disponível ${estoque.quantidade} peças.`
-            );
+        if (Number(estoque.quantidade) < qtdParaDebitar) {
+            throw new Error(`Estoque SP insuficiente (ID: ${produtoTamanhoId}). Disponível: ${estoque.quantidade}`);
         }
 
-        // 2. Debitar a quantidade convertida em peças
-        estoque.quantidade -= quantidadeEmPecas; 
+        estoque.quantidade = Number(estoque.quantidade) - qtdParaDebitar;
         await estoque.save({ transaction: t });
-
-        console.log(`[BAIXA SP] Debitado ${quantidade} duzias (${quantidadeEmPecas} peças) do produtoTamanhoId ${produtoTamanhoId}`);
     }
 };
 
-/* ---------------------- RETORNO DE ESTOQUE SP (Estorno de Baixa) ---------------------- */
 const retornarEstoqueSp = async (itensRetorno, t) => {
-    console.log('[RETORNO SP] Iniciando retorno de estoque...', itensRetorno);
-
-    const produtoTamanhoIds = itensRetorno.map(item => item.produtoTamanhoId);
-
-    // Garante o lock de transação
-    const estoques = await EstoqueSp.findAll({
-        where: { produtoTamanhoId: produtoTamanhoIds },
-        transaction: t,
-        lock: t.LOCK.UPDATE
-    });
-
-    const estoqueMap = {};
-    estoques.forEach(e => estoqueMap[e.produtoTamanhoId] = e);
-
     for (const item of itensRetorno) {
         const { produtoTamanhoId, quantidade } = item;
-        
-        // 💡 CONVERSÃO: Quantidade de dúzias (unidade do pedido) para peças (unidade do estoque).
-        const quantidadeEmPecas = quantidade * 12;
+        const qtdPecas = quantidade * 12;
 
-        const estoque = estoqueMap[produtoTamanhoId];
-        
-        if (!estoque) {
-            // Se o item não existe no Estoque SP, crie-o com a quantidade de retorno.
-             await EstoqueSp.create(
-                {
-                    produtoTamanhoId: produtoTamanhoId,
-                    quantidade: quantidadeEmPecas
-                },
-                { transaction: t }
-            );
-            console.log(`[RETORNO SP] Item não existia. Criado com ${quantidadeEmPecas} peças.`);
-        } else {
-            // Se existe, incrementa a quantidade.
-            estoque.quantidade += quantidadeEmPecas; 
-            await estoque.save({ transaction: t });
-            
-            console.log(`[RETORNO SP] Retornado ${quantidade} dúzias (${quantidadeEmPecas} peças) para o produtoTamanhoId ${produtoTamanhoId}`);
-        }
+        const [estoque] = await EstoqueSp.findOrCreate({
+            where: { produtoTamanhoId },
+            defaults: { quantidade: 0, estoqueMinimo: 0 },
+            transaction: t
+        });
+
+        estoque.quantidade += qtdPecas;
+        await estoque.save({ transaction: t });
     }
 };
-
 
 export {
     getAllCargas,
@@ -335,6 +278,7 @@ export {
     createCarga,
     updateCarga,
     deleteCarga,
+    updateEstoqueSpItem,
     darBaixaEstoqueSp,
-    retornarEstoqueSp // 👈 NOVA EXPORTAÇÃO
+    retornarEstoqueSp
 };

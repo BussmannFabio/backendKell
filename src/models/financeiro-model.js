@@ -10,6 +10,8 @@ Financeiro.init({
   valorMaoDeObra: { type: DataTypes.DECIMAL(10,2), allowNull: false },
   diferenca: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
   status: { type: DataTypes.ENUM('ABERTO','PAGO'), defaultValue: 'ABERTO' },
+  pecasDefeituosas: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
+  pecasProduzidas: { type: DataTypes.INTEGER, defaultValue: 0 },
   dataLancamento: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
 }, {
   sequelize,

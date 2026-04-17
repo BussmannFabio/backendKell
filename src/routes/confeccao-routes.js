@@ -47,4 +47,24 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// Atualizar parcialmente uma Confeccao (apenas nome)
+router.patch('/:id', async (req, res) => {
+  try {
+    const { nome } = req.body;
+
+    if (!nome || !String(nome).trim()) {
+      return res.status(400).json({ error: 'O campo "nome" é obrigatório.' });
+    }
+
+    const confeccao = await Confeccao.findByPk(req.params.id);
+    if (!confeccao) return res.status(404).json({ error: 'Confeccao não encontrada' });
+
+    await confeccao.update({ nome: String(nome).trim() });
+    res.json(confeccao);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;
+

@@ -113,7 +113,7 @@ export const atualizarStatusFinanceiro = async (req, res) => {
 };
 
 
-// ---------------------- RELATÓRIO COM AUDITORIA DE 2% ----------------------
+// ---------------------- RELATÓRIO FINANCEIRO (LÓGICA 98% SINCRONIZADA) ----------------------
 export const relatorioGerar = async (req, res) => {
   try {
     const { ordemIds } = req.body;
@@ -133,22 +133,43 @@ export const relatorioGerar = async (req, res) => {
 
     const produtoIds = [...new Set(itens.map(i => i.produtoId))];
     const produtos = await Produto.findAll({ where: { id: { [Op.in]: produtoIds } } });
-    const produtoMap = Object.fromEntries(produtos.map(p => [p.id, Number(p.valorMaoDeObraDuzia || 0)]));
+
+    // Preço M.O base por peça = valorMaoDeObraDuzia (já é por peça — o nome do campo é enganoso)
+    // Preço M.O excedente por peça = moBase × 1.70  (M.O base + 70%)
+    const produtoMap = Object.fromEntries(
+      produtos.map(p => {
+        const moBase = Number(p.valorMaoDeObraDuzia || 0);
+        return [p.id, { moBase, moExcedente: moBase * 1.70 }];
+      })
+    );
 
     const groups = {};
 
     for (const it of itens) {
       const ordem = ordens.find(o => o.id === it.ordemId);
       const confId = ordem?.confeccaoId || 'null';
-      
+
       const esperado100 = Number(it.volumes || 0) * Number(it.pecasPorVolume || 0);
       const realProduzido = Number(it.pecasReais || 0) + Number(it.pecasDefeituosas || 0);
-      const valorTotalItem = (realProduzido / 12) * (produtoMap[it.produtoId] || 0);
+      const { moBase, moExcedente } = produtoMap[it.produtoId] || { moBase: 0, moExcedente: 0 };
+
+      const meta98 = esperado100 * 0.98;
+      const saldoPecas = realProduzido - meta98;
+
+      // Peças DENTRO do retorno padrão → preço M.O base (valorMaoDeObraDuzia / 12)
+      const pecasDentroRetorno = Math.min(realProduzido, meta98);
+      // Peças EXCEDENTES ao retorno padrão → preço M.O excedente (valorMaoDeObraPeca)
+      const pecasExcedentes = Math.max(0, saldoPecas);
+
+      const valorDentroRetorno = pecasDentroRetorno * moBase;
+      const valorExcedente    = pecasExcedentes    * moExcedente;
+      const valorTotal        = valorDentroRetorno + valorExcedente;
 
       if (!groups[confId]) {
         groups[confId] = {
+          confeccaoId: confId,
           confeccaoNome: ordem?.confeccao?.nome || 'Sem confecção',
-          totalEsperado: 0,
+          totalEsperado100: 0,
           totalReal: 0,
           totalValor: 0,
           ordensDetalhadas: {}
@@ -156,40 +177,45 @@ export const relatorioGerar = async (req, res) => {
       }
 
       const g = groups[confId];
-      g.totalEsperado += esperado100;
+      g.totalEsperado100 += esperado100;
       g.totalReal += realProduzido;
-      g.totalValor += valorTotalItem;
+      g.totalValor += valorTotal;
 
       if (!g.ordensDetalhadas[it.ordemId]) {
-        g.ordensDetalhadas[it.ordemId] = { ordemId: it.ordemId, esperado: 0, real: 0, valor: 0 };
+        g.ordensDetalhadas[it.ordemId] = { 
+          ordemId: it.ordemId, 
+          esperado: 0, // Nome esperado pelo Frontend
+          real: 0, 
+          valor: 0, // Valor final acumulado
+          saldoPecas: 0 
+        };
       }
-      g.ordensDetalhadas[it.ordemId].esperado += esperado100;
-      g.ordensDetalhadas[it.ordemId].real += realProduzido;
-      g.ordensDetalhadas[it.ordemId].valor += valorTotalItem;
+      
+      const oDet = g.ordensDetalhadas[it.ordemId];
+      oDet.esperado += esperado100;
+      oDet.real += realProduzido;
+      oDet.saldoPecas += saldoPecas;
+      oDet.valor += valorTotal;
     }
 
     const report = Object.values(groups).map(g => {
-      const detalhe = Object.values(g.ordensDetalhadas).map(o => {
-        const meta98 = o.esperado * 0.98;
-        const saldo = o.real - meta98; // Positivo = Bônus, Negativo = Ônus
-        return {
-          ...o,
-          margem: Math.round(meta98 * 100) / 100,
-          falta: Math.round(saldo * 100) / 100 // Agora reflete o saldo real
-        };
-      });
-
-      const metaGeral98 = g.totalEsperado * 0.98;
+      const detalhe = Object.values(g.ordensDetalhadas).map(o => ({
+        ...o,
+        meta98: Math.round(o.esperado * 0.98 * 100) / 100,
+        saldoPecas: Math.round(o.saldoPecas * 100) / 100,
+        valor: Math.round(o.valor * 100) / 100
+      }));
 
       return {
+        confeccaoId: g.confeccaoId,
         confeccaoNome: g.confeccaoNome,
-        totalPecasEsperadas: g.totalEsperado,
-        totalPecasComMargem: Math.round(metaGeral98 * 100) / 100,
+        totalPecasEsperadas: g.totalEsperado100, // Nome exato esperado pelo TS
+        totalPecasComMargem: Math.round(g.totalEsperado100 * 0.98 * 100) / 100,
         totalPecasProduzidas: g.totalReal,
         totalValor: Math.round(g.totalValor * 100) / 100,
-        // Inconsistência = Saldo Líquido da Oficina
-        inconsistencias: Math.round((g.totalReal - metaGeral98) * 100) / 100,
-        ordensDetalhadas: detalhe
+        inconsistencias: Math.round((g.totalReal - (g.totalEsperado100 * 0.98)) * 100) / 100,
+        ordensDetalhadas: detalhe,
+        ordensCount: Object.keys(g.ordensDetalhadas).length
       };
     });
 

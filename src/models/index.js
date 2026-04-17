@@ -25,8 +25,7 @@ import Vendedor from './vendedor-model.js';
 console.log("=== INICIANDO ASSOCIAÇÕES ===");
 
 /**
- * Função Safe aprimorada: Garante que os modelos não sejam undefined
- * e evita duplicidade de alias.
+ * Função auxiliar para evitar associações duplicadas ou em modelos inexistentes
  */
 function safe(source, fn, target, options = {}) {
     if (!source || !target) {
@@ -40,101 +39,71 @@ function safe(source, fn, target, options = {}) {
     source[fn](target, options);
 }
 
-/* -----------------------------------------------------
-   VENDEDOR & CLIENTES
------------------------------------------------------ */
+/* VENDEDOR & CLIENTES */
 safe(Vendedor, 'hasMany', Cliente, { foreignKey: 'vendedorId', as: 'clientes' });
 safe(Cliente, 'belongsTo', Vendedor, { foreignKey: 'vendedorId', as: 'vendedor' });
 
-/* -----------------------------------------------------
-   PRODUTOS E ESTOQUE
------------------------------------------------------ */
+/* PRODUTOS E ESTOQUE CENTRAL */
 safe(Produto, 'hasMany', ProdutoTamanho, { foreignKey: 'produtoId', as: 'tamanhos' });
 safe(ProdutoTamanho, 'belongsTo', Produto, { foreignKey: 'produtoId', as: 'produto' });
 
 safe(ProdutoTamanho, 'hasOne', EstoqueProduto, { foreignKey: 'produtoTamanhoId', as: 'estoqueProduto' });
 safe(EstoqueProduto, 'belongsTo', ProdutoTamanho, { foreignKey: 'produtoTamanhoId', as: 'produtoTamanho' });
 
+/* ESTOQUE SP (AQUI É ONDE O CONTROLLER BUSCA) */
 safe(ProdutoTamanho, 'hasMany', EstoqueSp, { foreignKey: 'produtoTamanhoId', as: 'estoquesSp' });
 safe(EstoqueSp, 'belongsTo', ProdutoTamanho, { foreignKey: 'produtoTamanhoId', as: 'produtoTamanho' });
 
-/* -----------------------------------------------------
-   CARGAS
------------------------------------------------------ */
+/* CARGAS (TRANSFERÊNCIA CENTRAL -> SP) */
 safe(Carga, 'hasMany', CargaItem, { foreignKey: 'cargaId', as: 'itensCarga' });
 safe(CargaItem, 'belongsTo', Carga, { foreignKey: 'cargaId', as: 'carga' });
-
 safe(ProdutoTamanho, 'hasMany', CargaItem, { foreignKey: 'produtoTamanhoId', as: 'cargaItens' });
 safe(CargaItem, 'belongsTo', ProdutoTamanho, { foreignKey: 'produtoTamanhoId', as: 'produtoTamanho' });
 
-/* -----------------------------------------------------
-   ORDEM DE SERVIÇO
------------------------------------------------------ */
+/* ORDEM DE SERVIÇO / CONFECÇÃO */
 safe(OrdemServico, 'hasMany', OrdemItem, { foreignKey: 'ordemId', as: 'itens' });
 safe(OrdemItem, 'belongsTo', OrdemServico, { foreignKey: 'ordemId', as: 'ordem' });
-
 safe(ProdutoTamanho, 'hasMany', OrdemItem, { foreignKey: 'produtoTamanhoId', as: 'ordemItens' });
 safe(OrdemItem, 'belongsTo', ProdutoTamanho, { foreignKey: 'produtoTamanhoId', as: 'produtoTamanho' });
-
-// Relacionamento direto Item -> Produto
 safe(OrdemItem, 'belongsTo', Produto, { foreignKey: 'produtoId', as: 'produto' });
-
 safe(Confeccao, 'hasMany', OrdemServico, { foreignKey: 'confeccaoId', as: 'ordens' });
 safe(OrdemServico, 'belongsTo', Confeccao, { foreignKey: 'confeccaoId', as: 'confeccao' });
 
-/* -----------------------------------------------------
-   FINANCEIRO (Correção de integridade aqui)
------------------------------------------------------ */
-// Financeiro precisa pertencer a Ordem e Confecção para o listarFinanceiro funcionar
+/* FINANCEIRO */
 safe(Financeiro, 'belongsTo', OrdemServico, { foreignKey: 'ordemId', as: 'ordem' });
 safe(OrdemServico, 'hasMany', Financeiro, { foreignKey: 'ordemId', as: 'financeiros' });
-
 safe(Financeiro, 'belongsTo', Confeccao, { foreignKey: 'confeccaoId', as: 'confeccao' });
 safe(Confeccao, 'hasMany', Financeiro, { foreignKey: 'confeccaoId', as: 'financeiros' });
 
-/* -----------------------------------------------------
-   VALE PEDIDO SP
------------------------------------------------------ */
+/* VALE PEDIDO SP (SAÍDAS DE SÃO PAULO) */
 safe(ValePedidoSp, 'hasMany', ValePedidoItemSp, { foreignKey: 'valePedidoSpId', as: 'itens' });
 safe(ValePedidoItemSp, 'belongsTo', ValePedidoSp, { foreignKey: 'valePedidoSpId', as: 'vale' });
-
 safe(ProdutoTamanho, 'hasMany', ValePedidoItemSp, { foreignKey: 'produtoTamanhoId', as: 'valesItens' });
 safe(ValePedidoItemSp, 'belongsTo', ProdutoTamanho, { foreignKey: 'produtoTamanhoId', as: 'produtoTamanho' });
 
-/* -----------------------------------------------------
-   USERS / ROLES
------------------------------------------------------ */
+/* USUÁRIOS E PERMISSÕES */
 safe(User, 'belongsTo', Role, { foreignKey: 'roleId', as: 'role' });
 safe(Role, 'hasMany', User, { foreignKey: 'roleId', as: 'usuarios' });
-
 safe(User, 'hasMany', ValeMaterial, { foreignKey: 'usuarioId', as: 'valesMaterial' });
 safe(ValeMaterial, 'belongsTo', User, { foreignKey: 'usuarioId', as: 'usuario' });
 
-/* -----------------------------------------------------
-   MATERIAIS
------------------------------------------------------ */
+/* MATERIAIS E INSUMOS */
 safe(Material, 'hasOne', EstoqueMaterial, { foreignKey: 'materialId', as: 'estoqueMaterial' });
 safe(EstoqueMaterial, 'belongsTo', Material, { foreignKey: 'materialId', as: 'materialPai' });
-
 safe(Material, 'hasMany', MovimentacaoMaterial, { foreignKey: 'materialId', as: 'movimentacoesMaterial' });
 safe(MovimentacaoMaterial, 'belongsTo', Material, { foreignKey: 'materialId', as: 'material' });
-
 safe(Confeccao, 'hasMany', MovimentacaoMaterial, { foreignKey: 'confeccaoId', as: 'movimentacoesConfeccao' });
 safe(MovimentacaoMaterial, 'belongsTo', Confeccao, { foreignKey: 'confeccaoId', as: 'confeccao' });
-
 safe(User, 'hasMany', MovimentacaoMaterial, { foreignKey: 'usuarioId', as: 'movimentacoesUsuario' });
 safe(MovimentacaoMaterial, 'belongsTo', User, { foreignKey: 'usuarioId', as: 'usuario' });
 
-/* -----------------------------------------------------
-   VALE MATERIAL (M:N)
------------------------------------------------------ */
+/* VALE MATERIAL (MUITOS PARA MUITOS) */
 safe(Material, 'belongsToMany', ValeMaterial, {
     through: 'vale_material_itens',
     foreignKey: 'materialId',
     otherKey: 'valeMaterialId',
     as: 'valesAssociados'
 });
-
 safe(ValeMaterial, 'belongsToMany', Material, {
     through: 'vale_material_itens',
     foreignKey: 'valeMaterialId',

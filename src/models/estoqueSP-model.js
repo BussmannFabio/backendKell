@@ -1,3 +1,4 @@
+// src/models/EstoqueSp.js (ou similar)
 import { Model, DataTypes } from 'sequelize';
 import sequelize from '../config/database.js';
 
@@ -6,7 +7,13 @@ export default class EstoqueSp extends Model {}
 EstoqueSp.init({
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   produtoTamanhoId: { type: DataTypes.INTEGER, allowNull: false },
-  quantidade: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 }
+  quantidade: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+  // Adicionando o campo de estoque mínimo
+  estoqueMinimo: { 
+    type: DataTypes.INTEGER, 
+    allowNull: false, 
+    defaultValue: 0 
+  }
 }, {
   sequelize,
   modelName: 'EstoqueSp',
